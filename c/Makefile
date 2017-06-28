@@ -1,15 +1,23 @@
-# Add to to the end of cc.
+# Add to to the end of cc when building on Mac.
 #
 # FIXME This line is a hack.
-mac = -std=c11 -I/usr/local/opt/openssl/include
+mac = -I/usr/local/opt/openssl/include
 
-cc = gcc -Wall -ansi $(mac)
+cc = gcc -Wall -ansi -fpic -std=c11
 lflags = -lcrypto
 
 tinytest = test-tiny
 bitstest = test-bits
 bloomtest = test-bloom
 dicttest = test-dict
+
+install: libstruct.so const.h bits.h tiny.h bloom.h dict.h
+	cp libstruct.so /usr/local/lib
+	mkdir /usr/local/include/struct
+	cp const.h bits.h tiny.h bloom.h dict.h /usr/local/include/struct
+
+libstruct.so: bits.o tiny.o bloom.o dict.o
+	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o
 
 test: $(bitstest) $(tinytest) $(bloomtest) $(dicttest)
 
@@ -50,4 +58,4 @@ bits.o: bits.h bits.c const.h
 	$(cc) -c bits.c
 
 clean:
-	rm -f *.o $(tinytest).out $(tinyhashtest).out $(bitstest).out $(bloomtest).out $(dicttest).out
+	rm -f *.so *.o $(tinytest).out $(tinyhashtest).out $(bitstest).out $(bloomtest).out $(dicttest).out
