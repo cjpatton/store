@@ -9,3 +9,19 @@ func TestComputeTableLength(t *testing.T) {
 		t.Errorf("ComputeTableLength(%d) = %d, want %q", itemCt, tableLength, "hella")
 	}
 }
+
+func TestCreateDict(t *testing.T) {
+	m := map[string]string{
+		"this":   "I",
+		"is":     "like",
+		"pretty": "",
+		"hip":    "pizza",
+	}
+
+	dict, err := NewDict(m)
+	if err != nil {
+		t.Fatalf("CreateDict(m) fails: %q", err)
+	}
+
+	defer dict.Free()
+}
