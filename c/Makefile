@@ -11,13 +11,13 @@ bitstest = test-bits
 bloomtest = test-bloom
 dicttest = test-dict
 
+libstruct.so: bits.o tiny.o bloom.o dict.o
+	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o
+
 install: libstruct.so const.h bits.h tiny.h bloom.h dict.h
 	cp libstruct.so /usr/local/lib
 	mkdir /usr/local/include/struct
 	cp const.h bits.h tiny.h bloom.h dict.h /usr/local/include/struct
-
-libstruct.so: bits.o tiny.o bloom.o dict.o
-	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o
 
 test: $(bitstest) $(tinytest) $(bloomtest) $(dicttest)
 
