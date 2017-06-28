@@ -13,9 +13,8 @@ time. (There's an issue if it produces **a lot** of warnings.) To install:
 
 ```$ make && sudo make install && sudo ldconfig```
 
-This builds a file called libstruct.so and moves it to /usr/local/lib and copies
-the header files to /usr/local/include/struct. (It creates this directory if it
-doesn't exist.)
+This builds a file called libstruct.so and moves it to `/usr/local/lib` and copies
+the header files to `/usr/local/include/struct`.
 
 TODO
 ----
