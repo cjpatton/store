@@ -26,6 +26,7 @@ int compute_tiny_params(tiny_ctx *ctx, int radix) {
 
 tiny_ctx *tinyprf_new(int radix) {
   tiny_ctx *ctx = malloc(sizeof(tiny_ctx));
+  ctx->_use_prf = 1;
 
   int err = compute_tiny_params(ctx, radix);
   if (err != OK) {
@@ -66,9 +67,6 @@ int tinyprf_init(tiny_ctx *ctx, const char *key) {
   if (!res) {
     return ERR;
   }
-
-  ctx->h = tinyprf;
-  ctx->g = prf;
 
   return OK;
 }
@@ -133,6 +131,7 @@ int tinyprf(tiny_ctx *ctx, const char *in, int in_bytes, const char *tweak,
 
 tiny_ctx *tinyhash_new(int radix) {
   tiny_ctx *ctx = malloc(sizeof(tiny_ctx));
+  ctx->_use_prf = 0;
 
   int err = compute_tiny_params(ctx, radix);
   if (err != OK) {
@@ -153,9 +152,6 @@ int tinyhash_init(tiny_ctx *ctx){
   if (!res) {
     return ERR_SHA512;
   }
-
-  ctx->h = tinyhash;
-  ctx->g = hash;
 
   return OK;
 }

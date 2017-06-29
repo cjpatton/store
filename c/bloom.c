@@ -39,6 +39,41 @@ int bloom_init_generate_salt(bloom_t *bloom) {
   return bloom_init(bloom, NULL);
 }
 
+int compute_hash(tiny_ctx *tiny, const char *in, int in_bytes, char *salt,
+    int salt_bytes, int *h1, int *h2) {
+
+  if (tiny->_use_prf) {
+    salt[salt_bytes] = 1;
+    int res = tinyprf(tiny, in, in_bytes, salt, salt_bytes+1);
+    if (res < 0) {
+      return res;
+    }
+    *h1 = res;
+
+    salt[salt_bytes] = 2;
+    res = tinyprf(tiny, in, in_bytes, salt, salt_bytes+1);
+    if (res < 0) {
+      return res;
+    }
+    *h2 = res;
+  } else {
+    salt[salt_bytes] = 1;
+    int res = tinyhash(tiny, in, in_bytes, salt, salt_bytes+1);
+    if (res < 0) {
+      return res;
+    }
+    *h1 = res;
+
+    salt[salt_bytes] = 2;
+    res = tinyhash(tiny, in, in_bytes, salt, salt_bytes+1);
+    if (res < 0) {
+      return res;
+    }
+    *h2 = res;
+  }
+  return OK;
+}
+
 int bloom_insert(
     bloom_t *bloom,
     tiny_ctx *tiny,
@@ -49,15 +84,11 @@ int bloom_insert(
     return ERR_BLOOM_PARAMS_MISMATCH;
   }
 
-  bloom->salt[bloom->salt_bytes] = 1;
-  int h1 = tiny->h(tiny, in, in_bytes, bloom->salt, bloom->salt_bytes+1);
-  if (h1 < 0) {
-    return h1;
-  }
-  bloom->salt[bloom->salt_bytes] = 2;
-  int h2 = tiny->h(tiny, in, in_bytes, bloom->salt, bloom->salt_bytes+1);
-  if (h2 < 0) {
-    return h2;
+  int h1, h2;
+  int err = compute_hash(
+      tiny, in, in_bytes, bloom->salt, bloom->salt_bytes, &h1, &h2);
+  if (err != OK) {
+    return err;
   }
 
   for (int j = 0; j < bloom->hash_ct; j++) {
@@ -78,15 +109,11 @@ int bloom_get(
     return ERR_BLOOM_PARAMS_MISMATCH;
   }
 
-  bloom->salt[bloom->salt_bytes] = 1;
-  int h1 = tiny->h(tiny, in, in_bytes, bloom->salt, bloom->salt_bytes+1);
-  if (h1 < 0) {
-    return h1;
-  }
-  bloom->salt[bloom->salt_bytes] = 2;
-  int h2 = tiny->h(tiny, in, in_bytes, bloom->salt, bloom->salt_bytes+1);
-  if (h2 < 0) {
-    return h2;
+  int h1, h2;
+  int err = compute_hash(
+      tiny, in, in_bytes, bloom->salt, bloom->salt_bytes, &h1, &h2);
+  if (err != OK) {
+    return err;
   }
 
   int res = 1;

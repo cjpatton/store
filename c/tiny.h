@@ -25,11 +25,8 @@ typedef struct Tiny {
     SHA512_CTX sha;
   } _st;
 
-  // Pointer to either tinyhash or tinyprf.
-  int (*h) (struct Tiny *, const char *, int, const char *, int);
-
-  // Pointer to either hash or prf.
-  int (*g) (struct Tiny *, const char *, int, const char *, int, char *, int);
+  // Indicates whether to use (tiny)prf or (tiny)hash.
+  int _use_prf;
 
   // Stores the output of SHA512 (hash) or HMAC-SHA512 (prf).
   char digest [HASH_BYTES];
@@ -41,8 +38,6 @@ typedef struct Tiny {
 // Computes parameters from `radix. Initializes the HMAC context. Must be freed
 // via tinyprf_ctx_free(). Returns NULL if ceil(log2(radix)) not in range [1,
 // HASH_BITS].
-//
-// TODO Add test for NULL output. (Here and below.)
 tiny_ctx *tinyprf_new(int radix);
 
 // Frees memory associated to 'ctx'.

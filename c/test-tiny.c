@@ -33,7 +33,7 @@ int test_tinyprf_one() {
   // FIXME callback
   //
   // tinyprf_free(tiny);
-
+  ASSERT_EQ_ERROR("_use_prf", tiny->_use_prf, 1);
   ASSERT_EQ_ERROR("radix", tiny->radix, radix);
   ASSERT_EQ_ERROR("chunk_bits", tiny->chunk_bits, 10);
   ASSERT_EQ_ERROR("chunks", tiny->chunks, 51);
@@ -42,22 +42,18 @@ int test_tinyprf_one() {
   int res = tinyprf(tiny, test_in, strlen(test_in), NULL, 0);
   ASSERT_EQ_ERROR("tinyprf()", res, 436);
 
-  // Test tiny->h.
-  res = tiny->h(tiny, test_in, strlen(test_in), NULL, 0);
-  ASSERT_EQ_ERROR("tiny->h()", res, 436);
-
   res = tinyprf(tiny, test_in, strlen(test_in), test_in, strlen(test_in));
   ASSERT_EQ_ERROR("tinyhash()", res, 534);
 
-  // Test tiny->g
+  // Test prf()
   char buf [HASH_BYTES];
-  err = tiny->g(tiny, test_in, strlen(test_in), NULL, 0, buf, HASH_BYTES);
+  err = prf(tiny, test_in, strlen(test_in), NULL, 0, buf, HASH_BYTES);
   const char expected_buf [] = "\x23\xe5\x1f\xfc\xbc\x60\xe4\xb9";
-  ASSERT_OK_ERROR("tiny->g()", err);
+  ASSERT_OK_ERROR("prf()", err);
   ASSERT_EQ_ERROR("strncmp(buf, expected_buf, 8)", strncmp(buf, expected_buf, 8), 0);
 
-  err = tiny->g(tiny, test_in, strlen(test_in), NULL, 0, NULL, 0);
-  ASSERT_OK_ERROR("second tiny->g()", err);
+  err = prf(tiny, test_in, strlen(test_in), NULL, 0, NULL, 0);
+  ASSERT_OK_ERROR("second prf()", err);
 
   // Test again after reinitializing the context.
   err = tinyprf_init(tiny, test_key);
@@ -165,7 +161,7 @@ int test_tinyhash_one() {
   // FIXME callback
   //
   // tinyhash_free(tiny);
-
+  ASSERT_EQ_ERROR("_use_prf", tiny->_use_prf, 0);
   ASSERT_EQ_ERROR("radix", tiny->radix, radix);
   ASSERT_EQ_ERROR("chunk_bits", tiny->chunk_bits, 15);
   ASSERT_EQ_ERROR("chunks", tiny->chunks, 34);
@@ -177,19 +173,15 @@ int test_tinyhash_one() {
   res = tinyhash(tiny, test_in, strlen(test_in), test_in, strlen(test_in));
   ASSERT_EQ_ERROR("tinyhash()", res, 23300);
 
-  // Test tiny->h.
-  res = tiny->h(tiny, test_in, strlen(test_in), NULL, 0);
-  ASSERT_EQ_ERROR("tiny->h()", res, 8643);
-
   // Test tiny->g
   char buf [HASH_BYTES];
-  err = tiny->g(tiny, test_in, strlen(test_in), NULL, 0, buf, HASH_BYTES);
+  err = hash(tiny, test_in, strlen(test_in), NULL, 0, buf, HASH_BYTES);
   const char expected_buf [] = "\x6b\x94\x47\xbc\x35\x17\x95\xcb";
-  ASSERT_OK_ERROR("tiny->g()", err);
+  ASSERT_OK_ERROR("hash()", err);
   ASSERT_EQ_ERROR("strncmp(buf, expected_buf, 8)", strncmp(buf, expected_buf, 8), 0);
 
-  err = tiny->g(tiny, test_in, strlen(test_in), NULL, 0, NULL, 0);
-  ASSERT_OK_ERROR("second tiny->g()", err);
+  err = hash(tiny, test_in, strlen(test_in), NULL, 0, NULL, 0);
+  ASSERT_OK_ERROR("second hash()", err);
 
   // Test again after reinitializing the context.
   err = tinyhash_init(tiny);

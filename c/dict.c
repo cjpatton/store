@@ -116,6 +116,39 @@ void dict_free(dict_t *dict) {
   free(dict);
 }
 
+int dict_compute_rows(dict_params_t params, tiny_ctx *tiny, const char *key, int
+    key_bytes, int *x, int *y) {
+
+  if (tiny->_use_prf) {
+    params.salt[params.salt_bytes] = 1;
+    *x = tinyprf(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
+    if (*x < 0) {
+      return *x;
+    }
+
+    params.salt[params.salt_bytes] = 2;
+    *y = tinyprf(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
+    if (*y < 0) {
+      return *y;
+    }
+  } else {
+    params.salt[params.salt_bytes] = 1;
+    *x = tinyhash(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
+    if (*x < 0) {
+      return *x;
+    }
+
+    params.salt[params.salt_bytes] = 2;
+    *y = tinyhash(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
+    if (*y < 0) {
+      return *y;
+    }
+  }
+
+  return OK;
+}
+
+
 int dict_generate_graph(dict_t *dict, tiny_ctx *tiny, char **key,
     int *key_bytes, int item_ct, graph_t *graph) {
 
@@ -129,15 +162,10 @@ int dict_generate_graph(dict_t *dict, tiny_ctx *tiny, char **key,
   for (int j = 0; j < item_ct; j++) {
 
     // Map key[j] to a pair of node (x,y).
-    dict->params.salt[dict->params.salt_bytes] = 1;
-    int x = tiny->h(tiny, key[j], key_bytes[j], dict->params.salt, dict->params.salt_bytes+1);
-    if (x < 0) {
-      return x;
-    }
-    dict->params.salt[dict->params.salt_bytes] = 2;
-    int y = tiny->h(tiny, key[j], key_bytes[j], dict->params.salt, dict->params.salt_bytes+1);
-    if (y < 0) {
-      return y;
+    int x, y;
+    int err = dict_compute_rows(dict->params, tiny, key[j], key_bytes[j], &x, &y);
+    if (err != OK) {
+      return err;
     }
 
     // Add edge (x,y) to graph.
@@ -187,10 +215,20 @@ int dict_create_traverse1(dict_t *dict, tiny_ctx *tiny, graph_t *graph, int x,
 
     // Compute row y.
     dict->params.salt[dict->params.salt_bytes] = 3;
-    err = tiny->g(tiny, key[e], key_bytes[e], dict->params.salt, dict->params.salt_bytes+1,
-        &dict->table[ROW(y)], dict->params.row_bytes);
-    if (err != OK) {
-      return err;
+    if (tiny->_use_prf) {
+      int err = prf(tiny, key[e], key_bytes[e], dict->params.salt,
+                    dict->params.salt_bytes+1, &dict->table[ROW(y)],
+                    dict->params.row_bytes);
+      if (err != OK) {
+        return err;
+      }
+    } else {
+      int err = hash(tiny, key[e], key_bytes[e], dict->params.salt,
+                     dict->params.salt_bytes+1, &dict->table[ROW(y)],
+                     dict->params.row_bytes);
+      if (err != OK) {
+        return err;
+      }
     }
 
     // Add value[e] to y.
@@ -292,24 +330,6 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int dict_compute_rows(dict_params_t params, tiny_ctx *tiny, const char *key, int
-    key_bytes, int *x, int *y) {
-
-  params.salt[params.salt_bytes] = 1;
-  *x = tiny->h(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
-  if (*x < 0) {
-    return *x;
-  }
-
-  params.salt[params.salt_bytes] = 2;
-  *y = tiny->h(tiny, key, key_bytes, params.salt, params.salt_bytes+1);
-  if (*y < 0) {
-    return *y;
-  }
-
-  return OK;
-}
-
 int dict_compute_value(dict_params_t params, tiny_ctx *tiny, const char *key, int
     key_bytes, const char *xrow, const char *yrow, char *value, int *value_bytes) {
 
@@ -317,9 +337,16 @@ int dict_compute_value(dict_params_t params, tiny_ctx *tiny, const char *key, in
   //
   // FIXME Use local state instead of ctx->digest.
   params.salt[params.salt_bytes] = 3;
-  int err = tiny->g(tiny, key, key_bytes, params.salt, params.salt_bytes+1, NULL, 0);
-  if (err != OK) {
-    return err;
+  if (tiny->_use_prf) {
+    int err = prf(tiny, key, key_bytes, params.salt, params.salt_bytes+1, NULL, 0);
+    if (err != OK) {
+      return err;
+    }
+  } else {
+    int err = hash(tiny, key, key_bytes, params.salt, params.salt_bytes+1, NULL, 0);
+    if (err != OK) {
+      return err;
+    }
   }
 
   for (int j = 0; j < params.row_bytes; j++) {
