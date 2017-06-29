@@ -69,9 +69,9 @@ func TestGetparams(t *testing.T) {
 		t.Errorf("params.TableLen = %d, expected %d", params.TableLen, expectedTableLen)
 	}
 
-	expectedMaxValueBytes := 5
-	if params.MaxValueBytes != expectedMaxValueBytes {
-		t.Errorf("params.MaxValueBytes = %d, expected %d", params.MaxValueBytes, expectedMaxValueBytes)
+	expectedMaxOutputBytes := 5
+	if params.MaxOutputBytes != expectedMaxOutputBytes {
+		t.Errorf("params.MaxOutputBytes = %d, expected %d", params.MaxOutputBytes, expectedMaxOutputBytes)
 	}
 
 	expectedRowBytes := 8
@@ -92,18 +92,18 @@ func TestGet(t *testing.T) {
 	}
 	defer st.Free()
 
-	badKey := "tragically"
-	val, err := st.Get(badKey)
+	badInput := "tragically"
+	output, err := st.Get(badInput)
 	if err == nil {
-		t.Error("st.Get(badKey) succeeded, expected error")
+		t.Error("st.Get(badInput) succeeded, expected error")
 	}
 
-	goodKey := "hip"
-	expectedVal := "pizza"
-	val, err = st.Get(goodKey)
+	goodInput := "hip"
+	expectedOutput := "pizza"
+	output, err = st.Get(goodInput)
 	if err != nil {
-		t.Error("st.Get(goodKey) erred, expected success")
-	} else if val != expectedVal {
-		t.Error("st.get(goodKey) = %q, expected %q", val, expectedVal)
+		t.Error("st.Get(goodInput) erred, expected success")
+	} else if output != expectedOutput {
+		t.Error("st.get(goodInput) = %q, expected %q", output, expectedOutput)
 	}
 }
