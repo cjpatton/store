@@ -1,5 +1,6 @@
 // TODO Clean up errors
 // TODO Deal with name collision between key and crypto key.
+// TODO Add docstrings to functions.
 package keys
 
 /* #cgo LDFLAGS: -lstruct -lcrypto
@@ -44,16 +45,16 @@ import (
 )
 
 // TODO Make these parameters instead of global constants?
-const SaltBytes = 16
+const SaltBytes = 8
 const TagBytes = 2
 const MaxRowBytes = C.HASH_BYTES
 const KeyBytes = C.HMAC_KEY_BYTES
 
 type StoreParams struct {
-	tableLen      int
-	maxValueBytes int
-	rowBytes      int
-	salt          []byte
+	TableLen      int
+	MaxValueBytes int
+	RowBytes      int
+	Salt          string
 }
 
 type Store struct {
@@ -138,6 +139,29 @@ func NewStore(K string, M map[string]string) (*Store, error) {
 	return st, nil
 }
 
+func NewStoreGenerateKey(M map[string]string) (*Store, error) {
+	K := make([]byte, KeyBytes)
+	_, err := rand.Read(K)
+	if err != nil {
+		return nil, errors.New("rand.Read")
+	}
+	return NewStore(string(K), M)
+}
+
+func (st *Store) Free() {
+	C.tinyprf_free(st.tinyCtx)
+	C.cdict_free(st.dict)
+}
+
+func (st *Store) GetParams() *StoreParams {
+	params := new(StoreParams)
+	params.TableLen = int(st.dict.params.table_length)
+	params.MaxValueBytes = int(st.dict.params.max_value_bytes)
+	params.RowBytes = int(st.dict.params.row_bytes)
+	params.Salt = C.GoStringN(st.dict.params.salt, st.dict.params.salt_bytes)
+	return params
+}
+
 func (st *Store) Get(key string) (string, error) {
 	cKey := C.CString(key)
 	// FIXME Better way to do the following?
@@ -153,19 +177,4 @@ func (st *Store) Get(key string) (string, error) {
 		return "", errors.New("cdict_get")
 	}
 	return C.GoStringN(cVal, cValBytes), nil
-}
-
-func NewStoreGenerateKey(M map[string]string) (*Store, error) {
-	K := make([]byte, KeyBytes)
-	_, err := rand.Read(K)
-	if err != nil {
-		return nil, errors.New("rand.Read")
-	}
-
-	return NewStore(string(K), M)
-}
-
-func (st *Store) Free() {
-	C.tinyprf_free(st.tinyCtx)
-	C.cdict_free(st.dict)
 }

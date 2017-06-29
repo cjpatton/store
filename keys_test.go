@@ -51,10 +51,44 @@ func TestNewStoreGenerateKey(t *testing.T) {
 	defer st.Free()
 }
 
+func TestGetparams(t *testing.T) {
+	st, err := NewStore(goodK, goodM)
+	if err != nil {
+		t.Fatalf("NewStore() fails: %s", err)
+	}
+	defer st.Free()
+
+	params := st.GetParams()
+	if params == nil {
+		t.Error("st.GetParams() = nil, expected success")
+	}
+
+	// TODO Do something like AssertEq(var, exp, got)?
+	expectedTableLen := 9
+	if params.TableLen != expectedTableLen {
+		t.Errorf("params.TableLen = %d, expected %d", params.TableLen, expectedTableLen)
+	}
+
+	expectedMaxValueBytes := 5
+	if params.MaxValueBytes != expectedMaxValueBytes {
+		t.Errorf("params.MaxValueBytes = %d, expected %d", params.MaxValueBytes, expectedMaxValueBytes)
+	}
+
+	expectedRowBytes := 8
+	if params.RowBytes != expectedRowBytes {
+		t.Errorf("params.RowBytes = %d, expected %d", params.RowBytes, expectedRowBytes)
+	}
+
+	expectedSaltLen := SaltBytes
+	if len(params.Salt) != expectedSaltLen {
+		t.Errorf("len(params.Salt) = %d, expected %d", len(params.Salt), expectedSaltLen)
+	}
+}
+
 func TestGet(t *testing.T) {
 	st, err := NewStore(goodK, goodM)
 	if err != nil {
-		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+		t.Fatalf("NewStore() fails: %s", err)
 	}
 	defer st.Free()
 
