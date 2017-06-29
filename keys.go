@@ -5,6 +5,7 @@ package keys
 /* #cgo LDFLAGS: -lstruct -lcrypto
 #include <struct/const.h>
 #include <struct/dict.h>
+#include "string.h"
 
 char **new_str_list(int len) {
 	return calloc(sizeof(char *), len);
@@ -53,24 +54,31 @@ type StoreParams struct {
 	TableLen       int
 	MaxOutputBytes int
 	RowBytes       int
-	Salt           string
+	Salt           []byte
 }
 
-type Store struct {
+// TODO GetRows, Getparms (refactor)
+type PubStore struct {
+	dict *C.cdict_t
+}
+
+// TODO GetKey, GetParams (refactor), GetIdx, GetValue
+type PrivStore struct {
+	key     []byte
 	tinyCtx *C.tiny_ctx
-	dict    *C.cdict_t
-	key     string
+	params  *C.dict_params_t
 }
 
-func NewStore(K string, M map[string]string) (*Store, error) {
+func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Check that K is the right length.
 	if len(K) != KeyBytes {
-		return nil, errors.New("bad inputBytes")
+		return nil, nil, errors.New("bad inputBytes")
 	}
 
-	st := new(Store)
-	st.key = K
+	pub := new(PubStore)
+	priv := new(PrivStore)
+	priv.key = K
 
 	// Copy input/output pairs into C land.
 	itemCt := C.int(len(M))
@@ -105,71 +113,92 @@ func NewStore(K string, M map[string]string) (*Store, error) {
 		C.int(TagBytes),
 		C.int(SaltBytes))
 	if dict == nil {
-		return nil, errors.New("dict_new")
+		return nil, nil, errors.New("dict_new")
 	}
 	defer C.dict_free(dict)
 
-	st.tinyCtx = C.tinyprf_new(tableLen)
-	if st.tinyCtx == nil {
-		return nil, errors.New("tinyprf_new")
+	priv.tinyCtx = C.tinyprf_new(tableLen)
+	if priv.tinyCtx == nil {
+		return nil, nil, errors.New("tinyprf_new")
 	}
 
-	cK := C.CString(K)
+	cK := C.CString(string(K))
 	defer C.free(unsafe.Pointer(cK))
-	errNo := C.tinyprf_init(st.tinyCtx, cK)
+	errNo := C.tinyprf_init(priv.tinyCtx, cK)
 	if errNo != C.OK {
-		st.Free()
-		return nil, errors.New("tinyprf_init")
+		priv.Free()
+		return nil, nil, errors.New("tinyprf_init")
 	}
 
 	errNo = C.dict_create(
-		dict, st.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
+		dict, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
 	if errNo != C.OK {
-		st.Free()
-		return nil, errors.New("dict_create")
+		priv.Free()
+		return nil, nil, errors.New("dict_create")
 	}
 
-	st.dict = C.dict_compress(dict)
-	if st.dict == nil {
-		st.Free()
-		return nil, errors.New("dict_compress")
+	pub.dict = C.dict_compress(dict)
+	if pub.dict == nil {
+		priv.Free()
+		return nil, nil, errors.New("dict_compress")
 	}
 
-	return st, nil
+	// Copy parameters to priv.
+	priv.params = new(C.dict_params_t)
+	priv.params.table_length = pub.dict.params.table_length
+	priv.params.max_value_bytes = pub.dict.params.max_value_bytes
+	priv.params.tag_bytes = pub.dict.params.tag_bytes
+	priv.params.row_bytes = pub.dict.params.row_bytes
+	priv.params.salt_bytes = pub.dict.params.salt_bytes
+	priv.params.salt = (*C.char)(C.malloc(C.size_t(pub.dict.params.salt_bytes + 1)))
+	C.memcpy(unsafe.Pointer(priv.params.salt),
+		unsafe.Pointer(pub.dict.params.salt),
+		C.size_t(priv.params.salt_bytes))
+
+	return pub, priv, nil
 }
 
-func NewStoreGenerateKey(M map[string]string) (*Store, error) {
+func NewStoreGenerateKey(M map[string]string) (*PubStore, *PrivStore, error) {
 	K := make([]byte, KeyBytes)
 	_, err := rand.Read(K)
 	if err != nil {
-		return nil, errors.New("rand.Read")
+		return nil, nil, errors.New("rand.Read")
 	}
-	return NewStore(string(K), M)
+	return NewStore(K, M)
 }
 
-func (st *Store) Free() {
-	C.tinyprf_free(st.tinyCtx)
-	C.cdict_free(st.dict)
-}
-
-func (st *Store) GetParams() *StoreParams {
+func (pub *PubStore) GetParams() *StoreParams {
 	params := new(StoreParams)
-	params.TableLen = int(st.dict.params.table_length)
-	params.MaxOutputBytes = int(st.dict.params.max_value_bytes)
-	params.RowBytes = int(st.dict.params.row_bytes)
-	params.Salt = C.GoStringN(st.dict.params.salt, st.dict.params.salt_bytes)
+	params.TableLen = int(pub.dict.params.table_length)
+	params.MaxOutputBytes = int(pub.dict.params.max_value_bytes)
+	params.RowBytes = int(pub.dict.params.row_bytes)
+	params.Salt = C.GoBytes(
+		unsafe.Pointer(pub.dict.params.salt), pub.dict.params.salt_bytes)
 	return params
 }
 
-func (st *Store) Get(input string) (string, error) {
+func (pub *PubStore) Free() {
+	C.cdict_free(pub.dict)
+}
+
+func (priv *PrivStore) Free() {
+	for i := 0; i < len(priv.key); i++ {
+		priv.key[i] = 0
+	}
+	C.free(unsafe.Pointer(priv.params.salt))
+	C.tinyprf_free(priv.tinyCtx)
+}
+
+// TODO Refactor.
+func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	cInput := C.CString(input)
 	// FIXME Better way to do the following?
-	cOutput := C.CString(string(make([]byte, st.dict.params.max_value_bytes)))
+	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
 	cOutputBytes := C.int(0)
 	defer C.free(unsafe.Pointer(cInput))
 	defer C.free(unsafe.Pointer(cOutput))
 	errNo := C.cdict_get(
-		st.dict, st.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
+		pub.dict, priv.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
 	if errNo == C.ERR_DICT_BAD_KEY {
 		return "", errors.New("item not found")
 	} else if errNo != C.OK {

@@ -1,9 +1,15 @@
+// TODO Test that priv.params matches pub.dict.params.
+// TODO Test that Get() is the same as GetIdx(), GetRows(), GetValue().
+// TODO Test a map with just one item and look at its internal representation.
 package keys
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
-var goodK = "1234123412341234"
-var badK = "too short"
+var goodK = []byte("1234123412341234")
+var badK = []byte("too short")
 
 var goodM = map[string]string{
 	"this":           "I",
@@ -18,47 +24,51 @@ var badM = map[string]string{
 }
 
 func TestNewStore(t *testing.T) {
-
-	st, err := NewStore(goodK, badM)
+	pub, priv, err := NewStore(goodK, badM)
 	if err == nil {
 		t.Fatal("NewStore(goodK, badM) succeeds, expected error")
 	}
 
-	st, err = NewStore(badK, goodM)
+	pub, priv, err = NewStore(badK, goodM)
 	if err == nil {
 		t.Fatal("NewStore(badK, goodM) succeeds, expected error")
 	}
 
-	st, err = NewStore(goodK, emptyM)
+	pub, priv, err = NewStore(goodK, emptyM)
 	if err == nil {
 		t.Fatalf("NewStore(goodK, emptyM) succeeds, expected error")
 	}
 
-	st, err = NewStore(goodK, goodM)
+	pub, priv, err = NewStore(goodK, goodM)
 	if err != nil {
 		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
-	} else if st.key != goodK {
-		t.Error("st.key = %q, expected %q", st.key, goodK)
 	}
-	defer st.Free()
+	defer pub.Free()
+	defer priv.Free()
+
+	if bytes.Compare(priv.key, goodK) != 0 {
+		t.Errorf("priv.Key = %q, expected %q", priv.key, goodK)
+	}
 }
 
 func TestNewStoreGenerateKey(t *testing.T) {
-	st, err := NewStoreGenerateKey(goodM)
+	pub, priv, err := NewStoreGenerateKey(goodM)
 	if err != nil {
 		t.Fatalf("NewStoreGenerateKey(goodM) fails: %s", err)
 	}
-	defer st.Free()
+	defer pub.Free()
+	defer priv.Free()
 }
 
-func TestGetparams(t *testing.T) {
-	st, err := NewStore(goodK, goodM)
+func TestGetParams(t *testing.T) {
+	pub, priv, err := NewStoreGenerateKey(goodM)
 	if err != nil {
-		t.Fatalf("NewStore() fails: %s", err)
+		t.Fatalf("NewStoreGenerateKey() fails: %s", err)
 	}
-	defer st.Free()
+	defer pub.Free()
+	defer priv.Free()
 
-	params := st.GetParams()
+	params := pub.GetParams()
 	if params == nil {
 		t.Error("st.GetParams() = nil, expected success")
 	}
@@ -86,21 +96,22 @@ func TestGetparams(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	st, err := NewStore(goodK, goodM)
+	pub, priv, err := NewStoreGenerateKey(goodM)
 	if err != nil {
 		t.Fatalf("NewStore() fails: %s", err)
 	}
-	defer st.Free()
+	defer pub.Free()
+	defer priv.Free()
 
 	badInput := "tragically"
-	output, err := st.Get(badInput)
+	output, err := Get(pub, priv, badInput)
 	if err == nil {
 		t.Error("st.Get(badInput) succeeded, expected error")
 	}
 
 	goodInput := "hip"
 	expectedOutput := "pizza"
-	output, err = st.Get(goodInput)
+	output, err = Get(pub, priv, goodInput)
 	if err != nil {
 		t.Error("st.Get(goodInput) erred, expected success")
 	} else if output != expectedOutput {
