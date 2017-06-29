@@ -37,6 +37,16 @@ func TestNewStore(t *testing.T) {
 	st, err = NewStore(goodK, goodM)
 	if err != nil {
 		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+	} else if st.key != goodK {
+		t.Error("st.key = %q, expected %q", st.key, goodK)
+	}
+	defer st.Free()
+}
+
+func TestNewStoreGenerateKey(t *testing.T) {
+	st, err := NewStoreGenerateKey(goodM)
+	if err != nil {
+		t.Fatalf("NewStoreGenerateKey(goodM) fails: %s", err)
 	}
 	defer st.Free()
 }

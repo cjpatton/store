@@ -1,4 +1,5 @@
 // TODO Clean up errors
+// TODO Deal with name collision between key and crypto key.
 package keys
 
 /* #cgo LDFLAGS: -lstruct -lcrypto
@@ -37,6 +38,7 @@ void free_int_list(int *list) {
 */
 import "C"
 import (
+	"crypto/rand"
 	"errors"
 	"unsafe"
 )
@@ -45,6 +47,7 @@ import (
 const SaltBytes = 16
 const TagBytes = 2
 const MaxRowBytes = C.HASH_BYTES
+const KeyBytes = C.HMAC_KEY_BYTES
 
 type StoreParams struct {
 	tableLen      int
@@ -56,16 +59,18 @@ type StoreParams struct {
 type Store struct {
 	tinyCtx *C.tiny_ctx
 	dict    *C.cdict_t
+	key     string
 }
 
 func NewStore(K string, M map[string]string) (*Store, error) {
 
 	// Check that K is the right length.
-	if len(K) != C.HMAC_KEY_BYTES {
+	if len(K) != KeyBytes {
 		return nil, errors.New("bad keyBytes")
 	}
 
 	st := new(Store)
+	st.key = K
 
 	// Copy key/value pairs into C land.
 	itemCt := C.int(len(M))
@@ -148,6 +153,16 @@ func (st *Store) Get(key string) (string, error) {
 		return "", errors.New("cdict_get")
 	}
 	return C.GoStringN(cVal, cValBytes), nil
+}
+
+func NewStoreGenerateKey(M map[string]string) (*Store, error) {
+	K := make([]byte, KeyBytes)
+	_, err := rand.Read(K)
+	if err != nil {
+		return nil, errors.New("rand.Read")
+	}
+
+	return NewStore(string(K), M)
 }
 
 func (st *Store) Free() {
