@@ -333,42 +333,41 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
 int dict_compute_value(dict_params_t params, tiny_ctx *tiny, const char *key, int
     key_bytes, const char *xrow, const char *yrow, char *value, int *value_bytes) {
 
-  // Compute pad, storing it in ctx->digest.
-  //
-  // FIXME Use local state instead of ctx->digest.
+  // Compute pad.
+  char buf [HASH_BYTES];
   params.salt[params.salt_bytes] = 3;
   if (tiny->_use_prf) {
-    int err = prf(tiny, key, key_bytes, params.salt, params.salt_bytes+1, NULL, 0);
+    int err = prf(tiny, key, key_bytes, params.salt, params.salt_bytes+1, buf, HASH_BYTES);
     if (err != OK) {
       return err;
     }
   } else {
-    int err = hash(tiny, key, key_bytes, params.salt, params.salt_bytes+1, NULL, 0);
+    int err = hash(tiny, key, key_bytes, params.salt, params.salt_bytes+1, buf, HASH_BYTES);
     if (err != OK) {
       return err;
     }
   }
 
   for (int j = 0; j < params.row_bytes; j++) {
-    tiny->digest[j] ^= xrow[j] ^ yrow[j];
+    buf[j] ^= xrow[j] ^ yrow[j];
   }
 
   // Check the tag.
   char t = ZERO_BYTE;
   for (int j = params.max_value_bytes+1; j < params.row_bytes; j++) {
-    t |= tiny->digest[j];
+    t |= buf[j];
   }
 
   // If tag bytes are all 0, then copy value to 'value'.
   if (t == ZERO_BYTE) {
     int last_byte = params.max_value_bytes;
-    while (last_byte > 0 && tiny->digest[last_byte] == ZERO_BYTE) {
+    while (last_byte > 0 && buf[last_byte] == ZERO_BYTE) {
       last_byte--;
     }
-    if (tiny->digest[last_byte] != PAD_BYTE) {
+    if (buf[last_byte] != PAD_BYTE) {
       return ERR_DICT_BAD_PADDING;
     }
-    memcpy(value, tiny->digest, last_byte);
+    memcpy(value, buf, last_byte);
     *value_bytes = last_byte;
   } else {
     return ERR_DICT_BAD_KEY;

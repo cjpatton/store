@@ -52,6 +52,9 @@ int tinyprf_init(tiny_ctx *ctx, const char *key);
 int tinyprf_init_generate_key(tiny_ctx *ctx);
 
 // Computes HMAC-SHA512 of 'tweak | in' and outputs the result to 'out'.
+//
+// TODO Perhaps assert that out_bytes == HASH_BYTES and remove this parameter.
+// Here and for hash().
 int prf(tiny_ctx *ctx, const char *in, int in_bytes, const char *tweak,
     int tweak_bytes, char *out, int out_bytes);
 
