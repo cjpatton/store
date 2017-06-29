@@ -45,7 +45,7 @@ void tinyprf_free(tiny_ctx *ctx);
 
 // Initializes tiny_ctx* ctx with a secret key 'key' of length HMAC_KEY_BYTES.
 //
-// Returns OK if success and ERR otherwise.
+// Returns OK if success and ERR_HMAC otherwise.
 int tinyprf_init(tiny_ctx *ctx, const char *key);
 
 // Initializes tiny_ctx* ctx with a randomly-generated key of length HMAC_KEY_BYTES.

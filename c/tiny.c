@@ -3,6 +3,7 @@
 #include "openssl/hmac.h"
 #include "openssl/rand.h"
 #include "openssl/sha.h"
+#include "stdio.h"
 #include "string.h"
 
 #include "bits.h"
@@ -16,7 +17,7 @@
 int compute_tiny_params(tiny_ctx *ctx, int radix) {
   ctx->radix = radix;
   int k = ceillog2(radix);
-  if (k > HASH_BITS || k < 1) {
+  if (radix < 1 || k > HASH_BITS || k < 1) {
     return ERR_TINY_BAD_PARAMS;
   }
   ctx->chunk_bits = k;
@@ -30,6 +31,7 @@ tiny_ctx *tinyprf_new(int radix) {
 
   int err = compute_tiny_params(ctx, radix);
   if (err != OK) {
+    free(ctx);
     return NULL;
   }
 
@@ -65,7 +67,7 @@ int tinyprf_init(tiny_ctx *ctx, const char *key) {
   // Initialize HMAC-SHA512 context with 'key' and return the result.
   int res = HMAC_Init_ex(&(ctx->_st.hmac), key, HMAC_KEY_BYTES, EVP_sha512(), NULL);
   if (!res) {
-    return ERR;
+    return ERR_HMAC;
   }
 
   return OK;
@@ -135,6 +137,7 @@ tiny_ctx *tinyhash_new(int radix) {
 
   int err = compute_tiny_params(ctx, radix);
   if (err != OK) {
+    free(ctx);
     return NULL;
   }
 

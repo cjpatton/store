@@ -2,45 +2,64 @@ package keys
 
 import "testing"
 
-func TestComputeTableLength(t *testing.T) {
-	var itemCt int = 100
-	tableLength := ComputeTableLength(itemCt)
-	if tableLength != 209 {
-		t.Errorf("ComputeTableLength(%d) = %d, want %q", itemCt, tableLength, "hella")
-	}
+var goodK = "1234123412341234"
+var badK = "too short"
+
+var goodM = map[string]string{
+	"this":           "I",
+	"is":             "like",
+	"pretty\x00cool": "",
+	"hip":            "pizza",
+}
+var emptyM = map[string]string{}
+
+var badM = map[string]string{
+	"cool": string(make([]byte, MaxRowBytes-TagBytes)),
 }
 
 func TestNewStore(t *testing.T) {
 
-	goodM := map[string]string{
-		"this":   "I",
-		"is":     "like",
-		"pretty": "",
-		"hip":    "pizza",
-	}
-
-	badM := map[string]string{
-		"cool": string(make([]byte, MaxRowBytes-TagBytes)),
-	}
-
-	goodK := []byte("1234123412341234")
-
-	badK := []byte("too short")
-
 	st, err := NewStore(goodK, badM)
 	if err == nil {
-		t.Fatal("CreateDict(goodK, badM) succeeds, expected error")
+		t.Fatal("NewStore(goodK, badM) succeeds, expected error")
 	}
 
 	st, err = NewStore(badK, goodM)
 	if err == nil {
-		t.Fatal("CreateDict(badK, goodM) succeeds, expected error")
+		t.Fatal("NewStore(badK, goodM) succeeds, expected error")
+	}
+
+	st, err = NewStore(goodK, emptyM)
+	if err == nil {
+		t.Fatalf("NewStore(goodK, emptyM) succeeds, expected error")
 	}
 
 	st, err = NewStore(goodK, goodM)
 	if err != nil {
-		t.Fatalf("CreateDict(goodK, goodM) fails: %q", err)
+		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+	}
+	defer st.Free()
+}
+
+func TestGet(t *testing.T) {
+	st, err := NewStore(goodK, goodM)
+	if err != nil {
+		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+	}
+	defer st.Free()
+
+	badKey := "tragically"
+	val, err := st.Get(badKey)
+	if err == nil {
+		t.Error("st.Get(badKey) succeeded, expected error")
 	}
 
-	defer st.Free()
+	goodKey := "hip"
+	expectedVal := "pizza"
+	val, err = st.Get(goodKey)
+	if err != nil {
+		t.Error("st.Get(goodKey) erred, expected success")
+	} else if val != expectedVal {
+		t.Error("st.get(goodKey) = %q, expected %q", val, expectedVal)
+	}
 }
