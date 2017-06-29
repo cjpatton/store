@@ -10,18 +10,37 @@ func TestComputeTableLength(t *testing.T) {
 	}
 }
 
-func TestCreateDict(t *testing.T) {
-	m := map[string]string{
+func TestNewStore(t *testing.T) {
+
+	goodM := map[string]string{
 		"this":   "I",
 		"is":     "like",
 		"pretty": "",
 		"hip":    "pizza",
 	}
 
-	dict, err := NewDict(m)
-	if err != nil {
-		t.Fatalf("CreateDict(m) fails: %q", err)
+	badM := map[string]string{
+		"cool": string(make([]byte, MaxRowBytes-TagBytes)),
 	}
 
-	defer dict.Free()
+	goodK := []byte("1234123412341234")
+
+	badK := []byte("too short")
+
+	st, err := NewStore(goodK, badM)
+	if err == nil {
+		t.Fatal("CreateDict(goodK, badM) succeeds, expected error")
+	}
+
+	st, err = NewStore(badK, goodM)
+	if err == nil {
+		t.Fatal("CreateDict(badK, goodM) succeeds, expected error")
+	}
+
+	st, err = NewStore(goodK, goodM)
+	if err != nil {
+		t.Fatalf("CreateDict(goodK, goodM) fails: %q", err)
+	}
+
+	defer st.Free()
 }

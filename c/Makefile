@@ -16,7 +16,7 @@ libstruct.so: bits.o tiny.o bloom.o dict.o
 
 install: libstruct.so const.h bits.h tiny.h bloom.h dict.h
 	cp libstruct.so /usr/local/lib
-	mkdir /usr/local/include/struct
+	mkdir -p /usr/local/include/struct
 	cp const.h bits.h tiny.h bloom.h dict.h /usr/local/include/struct
 
 test: $(bitstest) $(tinytest) $(bloomtest) $(dicttest)
