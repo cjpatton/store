@@ -4,8 +4,8 @@ Good times with data structures
 A super light-weight password management solution for paranoid people who like
 Go.
 
-store
------
+`store`
+-------
 
 Package store provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation,
