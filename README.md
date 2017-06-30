@@ -1,3 +1,8 @@
+Good times with data structures
+===============================
+
+A super light-weight password management solution for paranoid people who like
+Go.
 
 store
 -----
@@ -28,15 +33,11 @@ Finally, the client executes:
 
 ```output, err := priv.GetValue(input, [][]byte{xRow, yRow})```
 
-and `M[input] = output`.
-
-Note that the server is not entrusted with the key; it simply looks up the
-rows of table requested by the client. The data structure is designed so that
-no information about `input` or `output` is leaked any party not in
-possession of the secret key.
-
-For convenience, we also provide a means for the client to query the
-structure directly:
+Then `M[input] = output`.  Note that the server is not entrusted with the key;
+it only looks up the rows of the table requested by the client. The data
+structure is designed so that no information about `input` or `output` is leaked
+to any party not in possession of the secret key. For convenience, we also
+provide a means for the client to query the structure directly:
 
 ```output, err := store.Get(pub, priv, input)```
 
@@ -44,20 +45,20 @@ structure directly:
 Installation
 ------------
 
-First, you'll need to install the C library, which can be found in `c/` in this
-drectory. To build and run tests, do
+The core data structures are implemented in C. (See `c/`.) These are compiled
+into a share object for which the Go code has bindings. To begin, you'll need
+to install the C To build and run tests, go to `c/` and do
 
 ```$ make && make test```
 
 Note that since the data structure are probabilistic, the tests will produce
-warnings from time to time. (There's an issue if it produces **a lot** of
+warnings from time to time. (This OK as long ast it doesn't produce **a lot** of
 warnings.) To install, do
 
 ```$ sudo make install && sudo ldconfig```
 
 This builds a file called libstruct.so and moves it to `/usr/local/lib` and copies
 the header files to `/usr/local/include/struct`.
-```
 
 Finally, you'll need Go. To get the latest version on Ubuntu, do
 
@@ -66,4 +67,3 @@ $ sudo add-apt-repository ppa:longsleep/golang-backports
 $ sudo apt-get update
 $ sudo apt-get install golang-go
 ```
-
