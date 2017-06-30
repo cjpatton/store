@@ -1,5 +1,7 @@
 // TODO Clean up errors
 // TODO Add docstrings to functions.
+// TODO Get rid of NewStoreGenerateKey, add functions to generate a key or
+//   derive a key from a password.
 package keys
 
 /* #cgo LDFLAGS: -lstruct -lcrypto
@@ -54,6 +56,7 @@ type StoreParams struct {
 	TableLen       int
 	MaxOutputBytes int
 	RowBytes       int
+	TagBytes       int
 	Salt           []byte
 }
 
@@ -66,7 +69,7 @@ type PubStore struct {
 type PrivStore struct {
 	key     []byte
 	tinyCtx *C.tiny_ctx
-	params  *C.dict_params_t
+	params  C.dict_params_t
 }
 
 func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
@@ -144,7 +147,6 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	}
 
 	// Copy parameters to priv.
-	priv.params = new(C.dict_params_t)
 	priv.params.table_length = pub.dict.params.table_length
 	priv.params.max_value_bytes = pub.dict.params.max_value_bytes
 	priv.params.tag_bytes = pub.dict.params.tag_bytes
@@ -168,17 +170,15 @@ func NewStoreGenerateKey(M map[string]string) (*PubStore, *PrivStore, error) {
 }
 
 func (pub *PubStore) GetParams() *StoreParams {
-	params := new(StoreParams)
-	params.TableLen = int(pub.dict.params.table_length)
-	params.MaxOutputBytes = int(pub.dict.params.max_value_bytes)
-	params.RowBytes = int(pub.dict.params.row_bytes)
-	params.Salt = C.GoBytes(
-		unsafe.Pointer(pub.dict.params.salt), pub.dict.params.salt_bytes)
-	return params
+	return cParamsToStoreParams(&pub.dict.params)
 }
 
 func (pub *PubStore) Free() {
 	C.cdict_free(pub.dict)
+}
+
+func (priv *PrivStore) GetParams() *StoreParams {
+	return cParamsToStoreParams(&priv.params)
 }
 
 func (priv *PrivStore) Free() {
@@ -205,4 +205,19 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 		return "", errors.New("cdict_get")
 	}
 	return C.GoStringN(cOutput, cOutputBytes), nil
+}
+
+// Returns true if the first saltBytes of *a and *b are equal.
+func cBytesToString(str *C.char, bytes C.int) string {
+	return C.GoStringN(str, bytes)
+}
+
+func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
+	params := new(StoreParams)
+	params.TableLen = int(cParams.table_length)
+	params.MaxOutputBytes = int(cParams.max_value_bytes)
+	params.RowBytes = int(cParams.row_bytes)
+	params.TagBytes = int(cParams.tag_bytes)
+	params.Salt = C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes)
+	return params
 }
