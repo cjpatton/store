@@ -4,8 +4,8 @@ Good times with data structures
 A super light-weight password management solution for paranoid people who like
 Go.
 
-`store`
--------
+Package `store`
+---------------
 
 Package store provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation,
@@ -46,7 +46,8 @@ Installation
 ------------
 
 The core data structures are implemented in C. (See `c/`.) These are compiled
-into a share object for which the Go code has bindings. To begin, you'll need
+into a share object for which the Go code has bindings. They depend on OpenSSL,
+so you'll need to install this library in advance. To begin, you'll need
 to install the C To build and run tests, go to `c/` and do
 
 ```$ make && make test```
