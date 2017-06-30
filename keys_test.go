@@ -3,7 +3,6 @@
 package keys
 
 import (
-	"bytes"
 	"testing"
 )
 
@@ -63,13 +62,6 @@ func TestNewStore(t *testing.T) {
 	defer pub.Free()
 	defer priv.Free()
 
-	// Make sure the key matches.
-	//
-	// TODO Settle whether or not priv.key should be set.
-	if bytes.Compare(priv.key, goodK) != 0 {
-		t.Errorf("priv.Key = %q, expected %q", priv.key, goodK)
-	}
-
 	// Check that the parameters are the same.
 	AssertIntEqError(t, "priv.params.table_length",
 		int(priv.params.table_length), int(pub.dict.params.table_length))
@@ -87,7 +79,7 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestNewStoreGenerateKey(t *testing.T) {
-	pub, priv, err := NewStoreGenerateKey(goodM)
+	pub, priv, err := NewStore(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewStoreGenerateKey(goodM) fails: %s", err)
 	}
@@ -96,7 +88,7 @@ func TestNewStoreGenerateKey(t *testing.T) {
 }
 
 func TestGetParams(t *testing.T) {
-	pub, priv, err := NewStoreGenerateKey(goodM)
+	pub, priv, err := NewStore(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewStoreGenerateKey() fails: %s", err)
 	}
@@ -125,7 +117,7 @@ func TestGetParams(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	pub, priv, err := NewStoreGenerateKey(goodM)
+	pub, priv, err := NewStore(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewStore() fails: %s", err)
 	}
@@ -145,5 +137,31 @@ func TestGet(t *testing.T) {
 		t.Error("st.Get(goodInput) erred, expected success")
 	} else if output != expectedOutput {
 		t.Error("st.get(goodInput) = %q, expected %q", output, expectedOutput)
+	}
+}
+
+func TestGetIdxRowsValue(t *testing.T) {
+	pub, priv, err := NewStore(GenerateKey(), goodM)
+	if err != nil {
+		t.Fatalf("NewStore() fails: %s", err)
+	}
+	defer pub.Free()
+	defer priv.Free()
+
+	for in, val := range goodM {
+		x, y, err := priv.GetIdx(in)
+		if err != nil {
+			t.Errorf("priv.GetIdx(%q) fails: %s", in, err)
+		}
+		rows, err := pub.GetRows(x, y)
+		if err != nil {
+			t.Errorf("pub.GetRows(%d, %d) fails: %s", x, y, err)
+		}
+		out, err := priv.GetValue(in, rows)
+		if err != nil {
+			t.Errorf("priv.GetValue(%q, %q) fails: %s", in, rows, err)
+		} else if out != val {
+			t.Error("out = %q, expected %q", out, val)
+		}
 	}
 }

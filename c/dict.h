@@ -159,6 +159,12 @@ int dict_get(dict_t *dict, tiny_ctx *tiny, const char *key, int key_bytes,
 // Destroy with cdict_free().
 cdict_t *dict_compress(dict_t *dict);
 
+// Computes index in compressed table associated to x, an output of
+// dict_compute_value().
+//
+// Initial values: l=0 and r=comp->compressed_table_length.
+int cdict_binsearch(cdict_t *comp, int x, int l, int r);
+
 // Free memory allocated for 'comp'.
 void cdict_free(cdict_t *comp);
 

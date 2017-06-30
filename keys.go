@@ -1,7 +1,6 @@
 // TODO Clean up errors
 // TODO Add docstrings to functions.
-// TODO Get rid of NewStoreGenerateKey, add functions to generate a key or
-//   derive a key from a password.
+// TODO DeriveKeyFromPassword
 package keys
 
 /* #cgo LDFLAGS: -lstruct -lcrypto
@@ -38,6 +37,10 @@ void free_str_list(char **list, int len) {
 void free_int_list(int *list) {
 	free(list);
 }
+
+char *get_row_ptr(char *table, int row, int row_bytes) {
+	return &table[row * row_bytes];
+}
 */
 import "C"
 import (
@@ -67,7 +70,6 @@ type PubStore struct {
 
 // TODO GetKey, GetParams (refactor), GetIdx, GetValue
 type PrivStore struct {
-	key     []byte
 	tinyCtx *C.tiny_ctx
 	params  C.dict_params_t
 }
@@ -81,7 +83,6 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	pub := new(PubStore)
 	priv := new(PrivStore)
-	priv.key = K
 
 	// Copy input/output pairs into C land.
 	itemCt := C.int(len(M))
@@ -160,13 +161,29 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	return pub, priv, nil
 }
 
-func NewStoreGenerateKey(M map[string]string) (*PubStore, *PrivStore, error) {
+func GenerateKey() []byte {
 	K := make([]byte, KeyBytes)
 	_, err := rand.Read(K)
 	if err != nil {
-		return nil, nil, errors.New("rand.Read")
+		return nil
 	}
-	return NewStore(K, M)
+	return K
+}
+
+func (pub *PubStore) GetRows(x, y int) ([][]byte, error) {
+
+	xRow := C.cdict_binsearch(
+		pub.dict, C.int(x), 0, pub.dict.compressed_table_length)
+	yRow := C.cdict_binsearch(
+		pub.dict, C.int(y), 0, pub.dict.compressed_table_length)
+
+	xRowPtr := C.get_row_ptr(pub.dict.table, xRow, pub.dict.params.row_bytes)
+	yRowPtr := C.get_row_ptr(pub.dict.table, yRow, pub.dict.params.row_bytes)
+
+	rows := make([][]byte, 2)
+	rows[0] = C.GoBytes(unsafe.Pointer(xRowPtr), pub.dict.params.row_bytes)
+	rows[1] = C.GoBytes(unsafe.Pointer(yRowPtr), pub.dict.params.row_bytes)
+	return rows, nil
 }
 
 func (pub *PubStore) GetParams() *StoreParams {
@@ -177,14 +194,47 @@ func (pub *PubStore) Free() {
 	C.cdict_free(pub.dict)
 }
 
+func (priv *PrivStore) GetIdx(input string) (int, int, error) {
+	cInput := C.CString(input)
+	defer C.free(unsafe.Pointer(cInput))
+	var x, y C.int
+	errNo := C.dict_compute_rows(
+		priv.params, priv.tinyCtx, cInput, C.int(len(input)), &x, &y)
+	if errNo != C.OK {
+		return 0, 0, errors.New("dict_compute_rows")
+	}
+	return int(x), int(y), nil
+}
+
+func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
+	cInput := C.CString(input)
+	// FIXME Better way to do the following?
+	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
+	defer C.free(unsafe.Pointer(cInput))
+	defer C.free(unsafe.Pointer(cOutput))
+	cOutputBytes := C.int(0)
+
+	xRow := C.CString(string(rows[0]))
+	yRow := C.CString(string(rows[1]))
+	defer C.free(unsafe.Pointer(xRow))
+	defer C.free(unsafe.Pointer(yRow))
+
+	errNo := C.dict_compute_value(priv.params, priv.tinyCtx, cInput,
+		C.int(len(input)), xRow, yRow, cOutput, &cOutputBytes)
+
+	if errNo == C.ERR_DICT_BAD_KEY {
+		return "", errors.New("item not found")
+	} else if errNo != C.OK {
+		return "", errors.New("dict_compute_value")
+	}
+	return C.GoStringN(cOutput, cOutputBytes), nil
+}
+
 func (priv *PrivStore) GetParams() *StoreParams {
 	return cParamsToStoreParams(&priv.params)
 }
 
 func (priv *PrivStore) Free() {
-	for i := 0; i < len(priv.key); i++ {
-		priv.key[i] = 0
-	}
 	C.free(unsafe.Pointer(priv.params.salt))
 	C.tinyprf_free(priv.tinyCtx)
 }
