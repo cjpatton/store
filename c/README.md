@@ -2,19 +2,9 @@ struct
 ======
 
 Implementations of (keyed) data structures, including **Bloom filters** and
-**Bloomier filters**.
+**Bloomier filters**. See `README.md` in the root project directory for
+installation instructions.
 
-To build and run tests:
-
-```$ make && make test```
-
-Note that many tests are probabilistic and will produce warnings from time to
-time. (There's an issue if it produces **a lot** of warnings.) To install:
-
-```$ sudo make install && sudo ldconfig```
-
-This builds a file called libstruct.so and moves it to `/usr/local/lib` and copies
-the header files to `/usr/local/include/struct`.
 
 TODO
 ----

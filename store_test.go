@@ -1,5 +1,4 @@
-// TODO Test a map with just one item and look at its internal representation.
-package keys
+package store
 
 import (
 	"testing"
@@ -44,30 +43,30 @@ func TestKey(t *testing.T) {
 	AssertIntEqError(t, "len(DeriveKeyFromPassword()))", len(K), KeyBytes)
 }
 
-func TestNewStore(t *testing.T) {
+func TestNew(t *testing.T) {
 
 	// Test with map with a value that is too long.
-	pub, priv, err := NewStore(goodK, badM)
+	pub, priv, err := New(goodK, badM)
 	if err == nil {
-		t.Fatal("NewStore(goodK, badM) succeeds, expected error")
+		t.Fatal("New(goodK, badM) succeeds, expected error")
 	}
 
 	// Test with map with no items.
-	pub, priv, err = NewStore(goodK, emptyM)
+	pub, priv, err = New(goodK, emptyM)
 	if err == nil {
-		t.Fatalf("NewStore(goodK, emptyM) succeeds, expected error")
+		t.Fatalf("New(goodK, emptyM) succeeds, expected error")
 	}
 
 	// Test with key that is not the right length.
-	pub, priv, err = NewStore(badK, goodM)
+	pub, priv, err = New(badK, goodM)
 	if err == nil {
-		t.Fatal("NewStore(badK, goodM) succeeds, expected error")
+		t.Fatal("New(badK, goodM) succeeds, expected error")
 	}
 
 	// Test with good inputs.
-	pub, priv, err = NewStore(goodK, goodM)
+	pub, priv, err = New(goodK, goodM)
 	if err != nil {
-		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+		t.Fatalf("New(goodK, goodM) fails: %s", err)
 	}
 	t.Log("pub\n", pub.ToString())
 	defer pub.Free()
@@ -83,9 +82,9 @@ func TestNewStore(t *testing.T) {
 		cBytesToString(priv.params.salt, priv.params.salt_bytes),
 		cBytesToString(pub.dict.params.salt, pub.dict.params.salt_bytes))
 
-	pub1, priv1, err := NewStore(goodK, oneM)
+	pub1, priv1, err := New(goodK, oneM)
 	if err != nil {
-		t.Fatalf("NewStore(goodK, goodM) fails: %s", err)
+		t.Fatalf("New(goodK, goodM) fails: %s", err)
 	}
 	t.Log("pub1\n", pub1.ToString())
 	defer pub1.Free()
@@ -93,9 +92,9 @@ func TestNewStore(t *testing.T) {
 }
 
 func TestGetParams(t *testing.T) {
-	pub, priv, err := NewStore(GenerateKey(), goodM)
+	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("NewStore() fails: %s", err)
+		t.Fatalf("New() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
@@ -106,8 +105,8 @@ func TestGetParams(t *testing.T) {
 	}
 	AssertIntEqError(t, "pub.GetParams(): params.TableLen", params.TableLen, 9)
 	AssertIntEqError(t, "pub.GetParams(): params.MaxOutputBytes", params.MaxOutputBytes, 5)
-	AssertIntEqError(t, "pub.GetParams(): params.TagBytes", params.TagBytes, 2)
-	AssertIntEqError(t, "pub.GetParams(): params.RowBytes", params.RowBytes, 8)
+	AssertIntEqError(t, "pub.GetParams(): params.TagBytes", params.TagBytes, 3)
+	AssertIntEqError(t, "pub.GetParams(): params.RowBytes", params.RowBytes, 9)
 	AssertIntEqError(t, "pub.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 
 	params = priv.GetParams()
@@ -116,15 +115,15 @@ func TestGetParams(t *testing.T) {
 	}
 	AssertIntEqError(t, "priv.GetParams(): params.TableLen", params.TableLen, 9)
 	AssertIntEqError(t, "priv.GetParams(): params.MaxOutputBytes", params.MaxOutputBytes, 5)
-	AssertIntEqError(t, "priv.GetParams(): params.TagBytes", params.TagBytes, 2)
-	AssertIntEqError(t, "priv.GetParams(): params.RowBytes", params.RowBytes, 8)
+	AssertIntEqError(t, "priv.GetParams(): params.TagBytes", params.TagBytes, 3)
+	AssertIntEqError(t, "priv.GetParams(): params.RowBytes", params.RowBytes, 9)
 	AssertIntEqError(t, "priv.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 }
 
 func TestGet(t *testing.T) {
-	pub, priv, err := NewStore(GenerateKey(), goodM)
+	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("NewStore() fails: %s", err)
+		t.Fatalf("New() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
@@ -146,9 +145,9 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetIdxRowsValue(t *testing.T) {
-	pub, priv, err := NewStore(GenerateKey(), goodM)
+	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("NewStore() fails: %s", err)
+		t.Fatalf("New() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
