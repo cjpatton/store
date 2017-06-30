@@ -24,6 +24,10 @@ void set_int_list(int *list, int idx, int val) {
 	list[idx] = val;
 }
 
+int get_int_list(int *list, int idx) {
+	return list[idx];
+}
+
 void free_str_list(char **list, int len) {
 	int i;
 	for (i = 0; i < len; i++) {
@@ -45,7 +49,9 @@ char *get_row_ptr(char *table, int row, int row_bytes) {
 import "C"
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"unsafe"
 )
 
@@ -170,20 +176,39 @@ func GenerateKey() []byte {
 	return K
 }
 
-func (pub *PubStore) GetRows(x, y int) ([][]byte, error) {
+func (pub *PubStore) GetRow(idx int) ([]byte, error) {
+	if idx < 0 || idx >= int(pub.dict.params.table_length) {
+		return nil, errors.New("index out of range")
+	}
+	realIdx := C.cdict_binsearch(pub.dict, C.int(idx), 0,
+		pub.dict.compressed_table_length)
+	return pub.getRealRow(realIdx), nil
+}
 
-	xRow := C.cdict_binsearch(
-		pub.dict, C.int(x), 0, pub.dict.compressed_table_length)
-	yRow := C.cdict_binsearch(
-		pub.dict, C.int(y), 0, pub.dict.compressed_table_length)
+func (pub *PubStore) GetTable() [][]byte {
+	table := make([][]byte, pub.dict.compressed_table_length)
+	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
+		table[i] = pub.getRealRow(C.int(i))
+	}
+	return table
+}
 
-	xRowPtr := C.get_row_ptr(pub.dict.table, xRow, pub.dict.params.row_bytes)
-	yRowPtr := C.get_row_ptr(pub.dict.table, yRow, pub.dict.params.row_bytes)
+func (pub *PubStore) GetTableIdx() []int {
+	tableIdx := make([]int, pub.dict.compressed_table_length)
+	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
+		tableIdx[i] = int(C.get_int_list(pub.dict.idx, C.int(i)))
+	}
+	return tableIdx
+}
 
-	rows := make([][]byte, 2)
-	rows[0] = C.GoBytes(unsafe.Pointer(xRowPtr), pub.dict.params.row_bytes)
-	rows[1] = C.GoBytes(unsafe.Pointer(yRowPtr), pub.dict.params.row_bytes)
-	return rows, nil
+func (pub *PubStore) ToString() string {
+	table := pub.GetTable()
+	idx := pub.GetTableIdx()
+	str := ""
+	for i := 0; i < len(table); i++ {
+		str += fmt.Sprintf("%-3d %s\n", idx[i], hex.EncodeToString(table[i]))
+	}
+	return str
 }
 
 func (pub *PubStore) GetParams() *StoreParams {
@@ -270,4 +295,9 @@ func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 	params.TagBytes = int(cParams.tag_bytes)
 	params.Salt = C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes)
 	return params
+}
+
+func (pub *PubStore) getRealRow(idx C.int) []byte {
+	rowPtr := C.get_row_ptr(pub.dict.table, idx, pub.dict.params.row_bytes)
+	return C.GoBytes(unsafe.Pointer(rowPtr), pub.dict.params.row_bytes)
 }
