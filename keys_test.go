@@ -35,6 +35,15 @@ func AssertStringEqError(t *testing.T, name string, got, exp string) {
 	}
 }
 
+func TestKey(t *testing.T) {
+	AssertIntEqError(t, "len(GenerateKey()))", len(GenerateKey()), KeyBytes)
+
+	password := []byte("hadi")
+	salt := []byte("1947")
+	K := DeriveKeyFromPassword(password, salt)
+	AssertIntEqError(t, "len(DeriveKeyFromPassword()))", len(K), KeyBytes)
+}
+
 func TestNewStore(t *testing.T) {
 
 	// Test with map with a value that is too long.

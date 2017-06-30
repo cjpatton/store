@@ -1,6 +1,5 @@
 // TODO Clean up errors
 // TODO Add docstrings to functions.
-// TODO DeriveKeyFromPassword
 package keys
 
 /* #cgo LDFLAGS: -lstruct -lcrypto
@@ -49,10 +48,13 @@ char *get_row_ptr(char *table, int row, int row_bytes) {
 import "C"
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"unsafe"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // TODO Make these parameters instead of global constants?
@@ -69,15 +71,26 @@ type StoreParams struct {
 	Salt           []byte
 }
 
-// TODO GetRows, Getparms (refactor)
 type PubStore struct {
 	dict *C.cdict_t
 }
 
-// TODO GetKey, GetParams (refactor), GetIdx, GetValue
 type PrivStore struct {
 	tinyCtx *C.tiny_ctx
 	params  C.dict_params_t
+}
+
+func GenerateKey() []byte {
+	K := make([]byte, KeyBytes)
+	_, err := rand.Read(K)
+	if err != nil {
+		return nil
+	}
+	return K
+}
+
+func DeriveKeyFromPassword(password, salt []byte) []byte {
+	return pbkdf2.Key(password, salt, 4096, KeyBytes, sha256.New)
 }
 
 func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
@@ -165,15 +178,6 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		C.size_t(priv.params.salt_bytes))
 
 	return pub, priv, nil
-}
-
-func GenerateKey() []byte {
-	K := make([]byte, KeyBytes)
-	_, err := rand.Read(K)
-	if err != nil {
-		return nil
-	}
-	return K
 }
 
 func (pub *PubStore) GetRow(idx int) ([]byte, error) {
