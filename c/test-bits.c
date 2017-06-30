@@ -1,3 +1,6 @@
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ */
 #include "stdio.h"
 #include "stdlib.h"
 

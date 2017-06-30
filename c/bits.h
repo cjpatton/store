@@ -1,4 +1,7 @@
-/* bits.h - Functions for manipulating arrays of bits.
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ *
+ * bits.h - Functions for manipulating arrays of bits.
  */
 #ifndef BITS_H
 #define BITS_H

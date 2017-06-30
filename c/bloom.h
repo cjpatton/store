@@ -1,4 +1,7 @@
-/* bloom.h - A Bloom filter based on the double hashing scheme of Kirsch and
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ *
+ * bloom.h - A Bloom filter based on the double hashing scheme of Kirsch and
  * Mitzenmacher "Less hashing, same performance: Building a better bloom
  * filter." It uses tinyhash or tinyprf for (keyed) hashingo.
  *

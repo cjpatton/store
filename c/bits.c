@@ -1,3 +1,6 @@
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ */
 #include "bits.h"
 
 int ceillog2(int radix) {

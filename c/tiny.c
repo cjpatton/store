@@ -1,4 +1,5 @@
-/* tiny.c
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
  */
 #include "openssl/hmac.h"
 #include "openssl/rand.h"

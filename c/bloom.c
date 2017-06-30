@@ -1,3 +1,6 @@
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ */
 #include "openssl/rand.h"
 #include "stdio.h"
 #include "string.h"

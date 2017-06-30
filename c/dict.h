@@ -1,4 +1,7 @@
-/* dict.h -- A probabilistic dictionary structure designed by Denis Charles
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ *
+ * dict.h -- A probabilistic dictionary structure designed by Denis Charles
  * and Kumar Chellapilla ("Bloomier Filters: A second look").
  *
  * Represents a key/value store. The keys are of arbitrary length, and the

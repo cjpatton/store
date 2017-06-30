@@ -1,4 +1,7 @@
-/* tiny.h -- Hashing over a small range.
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ *
+ * tiny.h -- Hashing over a small range.
  *
  * Implementation of a hash and pseudorandom function (from SHA512 and
  * HMAC-SHA512 resp.) suitable for construction Bloom filters and the like.

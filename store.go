@@ -1,3 +1,6 @@
+// Copyright (c) 2017, Christopher Patton
+// All rights reserved.
+//
 // Package store provides secure storage of `map[string]string` objects. The
 // contents of the structure cannot be deduced from its public representation,
 // and querying it requires knowledge of a secret key. It is suitable for

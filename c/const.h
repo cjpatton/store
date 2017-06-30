@@ -1,4 +1,7 @@
-/* const.h - Constants and error codes.
+/* Copyright (c) 2017, Christopher Patton
+ * All rights reserved.
+ *
+ * const.h - Constants and error codes.
  */
 #ifndef CONST_H
 #define CONST_H
