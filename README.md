@@ -79,4 +79,4 @@ Copyright
 ---------
 
 This software is distributed under the terms of the 3-Clause BSD License; see
-`LICENSE` in the root project diretcory.
+`LICENSE` in the root project directory for details.

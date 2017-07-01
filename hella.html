@@ -1,0 +1,532 @@
+use 'godoc cmd/github.com/cjpatton/keys' for documentation on the github.com/cjpatton/keys command 
+
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "github.com/cjpatton/keys"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+				<dd><a href="#pkg-subdirectories">Subdirectories</a></dd>
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				<p>
+Package store provides secure storage of map[string]string objects. The set of
+inputs are strings of arbitrary length; the set of outputs are strings of length
+at most 60 bytes.
+</p>
+<p>
+The data structure is designed for client/server protocols in which the server
+is trusted only to provide storage. The client possesses a secret key K and
+data M (of type map[string]string. It executes:
+</p>
+<pre>pub, priv, err := store.New(K, M)
+</pre>
+<p>
+and transmits pub, the public representation of M, to the server.
+To compute M[input], the client executes:
+</p>
+<pre>x, y, err := priv.GetIdx(input)
+</pre>
+<p>
+and sends x and y to the server. These are integers corresponding to rows in
+a table (of type [][]byte) encoded by pub. The server executes:
+</p>
+<pre>xRow, err := pub.GetRow(x)
+</pre>
+<p>
+and sends xRow (of type []byte) to the client. (Similarly for y.)
+Finally, the client executes:
+</p>
+<pre>output, err := priv.GetValue(input, [][]byte{xRow, yRow})
+</pre>
+<p>
+Then M[input] = output.  Note that the server is not entrusted with the key;
+its only job is to look up the rows of the table requested by the client. The
+data structure is designed so that no information about input or output is
+leaked to any party not in possession of the secret key.  For convenience, we
+also provide a means for the client to query the structure directly:
+</p>
+<pre>output, err := store.Get(pub, priv, input)
+</pre>
+<p>
+The core structure is a variant of a technique of Charles and Chellapilla for
+representing functions. (See &#34;Bloomier Filters: A second look&#34;, appearing at ESA
+2008.) The idea is that each input is mapped to two rows of a table so that,
+when these rows are added together (i.e., their bitwise-XOR is computed), the
+result is equal to the output. The look up is performed using hash functions.
+The table rows are 64 bytes in length. Roughly speaking, the query is evaluated
+as follows (note that this is pseudocode):
+</p>
+<pre>x := H1(input) // An integer in range [1..m], where m is the length of the table
+y := H2(input) // An integer in range [1..m]
+pad := H3(input) // A string of length 64 bytes
+output = := Table[x] ^ Tabley[y] ^ pad
+</pre>
+<p>
+In our setting, we replace the hash functions H1, H2, and H3 with a keyed,
+pseudorandom function. The client does all the hashing; the server just needs to
+look things up. The length of each row is 64 bytes because we use HMAC-SHA512 for
+the pseudorandom function, which has an output length of 64 bytes.
+</p>
+<p>
+If some query is not in the table, then the result of the query should indicate
+as much. This is accomplished by appending a tag to the output. 4 bytes of each
+row are allocated for the tag and padding of the output; hence, each output must
+be at most 60 bytes long.
+</p>
+<p>
+Copyright (c) 2017, Christopher Patton.
+All rights reserved.
+</p>
+
+			</div>
+		</div>
+		
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+				<dd><a href="#pkg-constants">Constants</a></dd>
+			
+			
+			
+				
+				<dd><a href="#DeriveKeyFromPassword">func DeriveKeyFromPassword(password, salt []byte) []byte</a></dd>
+			
+				
+				<dd><a href="#GenerateKey">func GenerateKey() []byte</a></dd>
+			
+				
+				<dd><a href="#Get">func Get(pub *PubStore, priv *PrivStore, input string) (string, error)</a></dd>
+			
+			
+				
+				<dd><a href="#PrivStore">type PrivStore</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PrivStore.Free">func (priv *PrivStore) Free()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PrivStore.GetIdx">func (priv *PrivStore) GetIdx(input string) (int, int, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PrivStore.GetParams">func (priv *PrivStore) GetParams() *StoreParams</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PrivStore.GetValue">func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error)</a></dd>
+				
+			
+				
+				<dd><a href="#PubStore">type PubStore</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#New">func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error)</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.Free">func (pub *PubStore) Free()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.GetParams">func (pub *PubStore) GetParams() *StoreParams</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.GetRow">func (pub *PubStore) GetRow(idx int) ([]byte, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.GetTable">func (pub *PubStore) GetTable() [][]byte</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.GetTableIdx">func (pub *PubStore) GetTableIdx() []int</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#PubStore.ToString">func (pub *PubStore) ToString() string</a></dd>
+				
+			
+				
+				<dd><a href="#StoreParams">type StoreParams</a></dd>
+				
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h4>Package files</h4>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/github.com/cjpatton/keys/doc.go">doc.go</a>
+			
+				<a href="/src/github.com/cjpatton/keys/store.go">store.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+			<h2 id="pkg-constants">Constants</h2>
+			
+				
+				<pre>const <span id="KeyBytes">KeyBytes</span> = <a href="/pkg/C/">C</a>.<a href="/pkg/C/#HMAC_KEY_BYTES">HMAC_KEY_BYTES</a></pre>
+			
+				
+				<pre>const <span id="MaxRowBytes">MaxRowBytes</span> = <a href="/pkg/C/">C</a>.<a href="/pkg/C/#HASH_BYTES">HASH_BYTES</a></pre>
+			
+				
+				<pre>const <span id="MaxValueBytes">MaxValueBytes</span> = <a href="#MaxRowBytes">MaxRowBytes</a> - <a href="#TagBytes">TagBytes</a> - 1</pre>
+			
+				<p>
+TODO(me) Make these parameters instead of global constants?
+</p>
+
+				<pre>const <span id="SaltBytes">SaltBytes</span> = 8</pre>
+			
+				
+				<pre>const <span id="TagBytes">TagBytes</span> = 3</pre>
+			
+		
+		
+		
+			
+			
+			<h2 id="DeriveKeyFromPassword">func <a href="/src/target/store.go?s=1794:1850#L91">DeriveKeyFromPassword</a>
+				<a class="permalink" href="#DeriveKeyFromPassword">&#xb6;</a>
+			</h2>
+			<pre>func DeriveKeyFromPassword(password, salt []<a href="/pkg/builtin/#byte">byte</a>) []<a href="/pkg/builtin/#byte">byte</a></pre>
+			
+			
+			
+
+		
+			
+			
+			<h2 id="GenerateKey">func <a href="/src/target/store.go?s=1667:1692#L82">GenerateKey</a>
+				<a class="permalink" href="#GenerateKey">&#xb6;</a>
+			</h2>
+			<pre>func GenerateKey() []<a href="/pkg/builtin/#byte">byte</a></pre>
+			
+			
+			
+
+		
+			
+			
+			<h2 id="Get">func <a href="/src/target/store.go?s=6857:6927#L271">Get</a>
+				<a class="permalink" href="#Get">&#xb6;</a>
+			</h2>
+			<pre>func Get(pub *<a href="#PubStore">PubStore</a>, priv *<a href="#PrivStore">PrivStore</a>, input <a href="/pkg/builtin/#string">string</a>) (<a href="/pkg/builtin/#string">string</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+			<p>
+TODO Refactor.
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="PrivStore">type <a href="/src/target/store.go?s=1594:1665#L77">PrivStore</a>
+				<a class="permalink" href="#PrivStore">&#xb6;</a>
+			</h2>
+			
+			<pre>type PrivStore struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="PrivStore.Free">func (*PrivStore) <a href="/src/target/store.go?s=6732:6761#L265">Free</a>
+					<a class="permalink" href="#PrivStore.Free">&#xb6;</a>
+				</h3>
+				<pre>func (priv *<a href="#PrivStore">PrivStore</a>) Free()</pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PrivStore.GetIdx">func (*PrivStore) <a href="/src/target/store.go?s=5496:5557#L225">GetIdx</a>
+					<a class="permalink" href="#PrivStore.GetIdx">&#xb6;</a>
+				</h3>
+				<pre>func (priv *<a href="#PrivStore">PrivStore</a>) GetIdx(input <a href="/pkg/builtin/#string">string</a>) (<a href="/pkg/builtin/#int">int</a>, <a href="/pkg/builtin/#int">int</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PrivStore.GetParams">func (*PrivStore) <a href="/src/target/store.go?s=6636:6683#L261">GetParams</a>
+					<a class="permalink" href="#PrivStore.GetParams">&#xb6;</a>
+				</h3>
+				<pre>func (priv *<a href="#PrivStore">PrivStore</a>) GetParams() *<a href="#StoreParams">StoreParams</a></pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PrivStore.GetValue">func (*PrivStore) <a href="/src/target/store.go?s=5838:5914#L237">GetValue</a>
+					<a class="permalink" href="#PrivStore.GetValue">&#xb6;</a>
+				</h3>
+				<pre>func (priv *<a href="#PrivStore">PrivStore</a>) GetValue(input <a href="/pkg/builtin/#string">string</a>, rows [][]<a href="/pkg/builtin/#byte">byte</a>) (<a href="/pkg/builtin/#string">string</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+				
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="PubStore">type <a href="/src/target/store.go?s=1551:1592#L73">PubStore</a>
+				<a class="permalink" href="#PubStore">&#xb6;</a>
+			</h2>
+			
+			<pre>type PubStore struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="New">func <a href="/src/target/store.go?s=1919:1989#L95">New</a>
+					<a class="permalink" href="#New">&#xb6;</a>
+				</h3>
+				<pre>func New(K []<a href="/pkg/builtin/#byte">byte</a>, M map[<a href="/pkg/builtin/#string">string</a>]<a href="/pkg/builtin/#string">string</a>) (*<a href="#PubStore">PubStore</a>, *<a href="#PrivStore">PrivStore</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+				
+				
+				
+			
+
+			
+				
+				<h3 id="PubStore.Free">func (*PubStore) <a href="/src/target/store.go?s=5439:5466#L221">Free</a>
+					<a class="permalink" href="#PubStore.Free">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) Free()</pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PubStore.GetParams">func (*PubStore) <a href="/src/target/store.go?s=5341:5386#L217">GetParams</a>
+					<a class="permalink" href="#PubStore.GetParams">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) GetParams() *<a href="#StoreParams">StoreParams</a></pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PubStore.GetRow">func (*PubStore) <a href="/src/target/store.go?s=4350:4402#L182">GetRow</a>
+					<a class="permalink" href="#PubStore.GetRow">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) GetRow(idx <a href="/pkg/builtin/#int">int</a>) ([]<a href="/pkg/builtin/#byte">byte</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PubStore.GetTable">func (*PubStore) <a href="/src/target/store.go?s=4644:4684#L191">GetTable</a>
+					<a class="permalink" href="#PubStore.GetTable">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) GetTable() [][]<a href="/pkg/builtin/#byte">byte</a></pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PubStore.GetTableIdx">func (*PubStore) <a href="/src/target/store.go?s=4866:4906#L199">GetTableIdx</a>
+					<a class="permalink" href="#PubStore.GetTableIdx">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) GetTableIdx() []<a href="/pkg/builtin/#int">int</a></pre>
+				
+				
+				
+				
+			
+				
+				<h3 id="PubStore.ToString">func (*PubStore) <a href="/src/target/store.go?s=5113:5151#L207">ToString</a>
+					<a class="permalink" href="#PubStore.ToString">&#xb6;</a>
+				</h3>
+				<pre>func (pub *<a href="#PubStore">PubStore</a>) ToString() <a href="/pkg/builtin/#string">string</a></pre>
+				
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="StoreParams">type <a href="/src/target/store.go?s=1419:1549#L65">StoreParams</a>
+				<a class="permalink" href="#StoreParams">&#xb6;</a>
+			</h2>
+			
+			<pre>type StoreParams struct {
+<span id="StoreParams.TableLen"></span>    TableLen       <a href="/pkg/builtin/#int">int</a>
+<span id="StoreParams.MaxOutputBytes"></span>    MaxOutputBytes <a href="/pkg/builtin/#int">int</a>
+<span id="StoreParams.RowBytes"></span>    RowBytes       <a href="/pkg/builtin/#int">int</a>
+<span id="StoreParams.TagBytes"></span>    TagBytes       <a href="/pkg/builtin/#int">int</a>
+<span id="StoreParams.Salt"></span>    Salt           []<a href="/pkg/builtin/#byte">byte</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+	
+
+	
+
+
+
+
+
+	
+	
+		<h2 id="pkg-subdirectories">Subdirectories</h2>
+	
+	
+
+
+	<div class="pkg-dir">
+		<table>
+			<tr>
+				<th class="pkg-name">Name</th>
+				<th class="pkg-synopsis">Synopsis</th>
+			</tr>
+
+			
+			<tr>
+				<td colspan="2"><a href="..">..</a></td>
+			</tr>
+			
+
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="c/">c</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+		</table>
+	</div>
+
+
+	
+
