@@ -1,9 +1,6 @@
 # Add to to the end of cc when building on Mac.
-#
-# FIXME This line is a hack.
-mac = -I/usr/local/opt/openssl/include
-
-cc = gcc -Wall -ansi -fpic -std=c11
+mac_cppflags = -I/usr/local/opt/openssl/include
+cc = gcc -Wall -ansi -fpic -std=c11 $(mac_cppflags)
 lflags = -lcrypto
 
 tinytest = test-tiny
@@ -12,7 +9,7 @@ bloomtest = test-bloom
 dicttest = test-dict
 
 libstruct.so: bits.o tiny.o bloom.o dict.o
-	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o
+	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o $(lflags)
 
 install: libstruct.so const.h bits.h tiny.h bloom.h dict.h
 	cp libstruct.so /usr/local/lib

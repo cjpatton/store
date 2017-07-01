@@ -7,7 +7,10 @@ package store
 //  * PubStore) <--> protobuf
 //  * NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error)
 
-/* #cgo LDFLAGS: -lstruct -lcrypto
+/*
+// The next line gets things going on Mac:
+#cgo CPPFLAGS: -I/usr/local/opt/openssl/include
+#cgo LDFLAGS: -lstruct -lcrypto
 #include <struct/const.h>
 #include <struct/dict.h>
 #include "string.h"
@@ -66,6 +69,7 @@ import (
 const SaltBytes = 8
 const TagBytes = 3
 const MaxRowBytes = C.HASH_BYTES
+const MaxValueBytes = MaxRowBytes - TagBytes - 1
 const KeyBytes = C.HMAC_KEY_BYTES
 
 type StoreParams struct {
