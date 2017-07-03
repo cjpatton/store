@@ -75,7 +75,22 @@ $ sudo apt-get install golang-go
 
 On Mac, download the [pkg](https://golang.org/dl/) and install it.
 
-Copyright
+
+
+Building `store.pb.go`
+----------------------
+
+**You only need to do this if you want to modify the code.**
+This project uses protcool buffers. To build the protobuf for go, do
+
+```
+$ sudo apt install protobuf-compiler
+$ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+$ go install github.com/golang/protobuf/{proto,protoc-gen-go}i
+$ protoc --go_out=. *.proto
+```
+
+Note Copyright
 ---------
 
 This software is distributed under the terms of the 3-Clause BSD License; see

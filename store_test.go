@@ -24,6 +24,12 @@ var badM = map[string]string{
 }
 
 // TODO Does testing have these sorts of functions already?
+func AssertInt32EqError(t *testing.T, name string, got, exp int32) {
+	if got != exp {
+		t.Errorf("%s = %d, expected %d", name, got, exp)
+	}
+}
+
 func AssertIntEqError(t *testing.T, name string, got, exp int) {
 	if got != exp {
 		t.Errorf("%s = %d, expected %d", name, got, exp)
@@ -76,11 +82,11 @@ func TestNew(t *testing.T) {
 	defer priv.Free()
 
 	// Check that the parameters are the same.
-	AssertIntEqError(t, "priv.params.table_length", int(priv.params.table_length), int(pub.dict.params.table_length))
-	AssertIntEqError(t, "priv.params.max_value_bytes", int(priv.params.max_value_bytes), int(pub.dict.params.max_value_bytes))
-	AssertIntEqError(t, "priv.params.tag_bytes", int(priv.params.tag_bytes), int(pub.dict.params.tag_bytes))
-	AssertIntEqError(t, "priv.params.row_bytes", int(priv.params.row_bytes), int(pub.dict.params.row_bytes))
-	AssertIntEqError(t, "priv.params.salt_bytes", int(priv.params.salt_bytes), int(pub.dict.params.salt_bytes))
+	AssertInt32EqError(t, "priv.params.table_length", int32(priv.params.table_length), int32(pub.dict.params.table_length))
+	AssertInt32EqError(t, "priv.params.max_value_bytes", int32(priv.params.max_value_bytes), int32(pub.dict.params.max_value_bytes))
+	AssertInt32EqError(t, "priv.params.tag_bytes", int32(priv.params.tag_bytes), int32(pub.dict.params.tag_bytes))
+	AssertInt32EqError(t, "priv.params.row_bytes", int32(priv.params.row_bytes), int32(pub.dict.params.row_bytes))
+	AssertInt32EqError(t, "priv.params.salt_bytes", int32(priv.params.salt_bytes), int32(pub.dict.params.salt_bytes))
 	AssertStringEqError(t, "priv.params.salt",
 		cBytesToString(priv.params.salt, priv.params.salt_bytes),
 		cBytesToString(pub.dict.params.salt, pub.dict.params.salt_bytes))
@@ -107,20 +113,20 @@ func TestGetParams(t *testing.T) {
 	if params == nil {
 		t.Error("pub.GetParams() = nil, expected success")
 	}
-	AssertIntEqError(t, "pub.GetParams(): params.TableLen", params.TableLen, 9)
-	AssertIntEqError(t, "pub.GetParams(): params.MaxOutputBytes", params.MaxOutputBytes, 5)
-	AssertIntEqError(t, "pub.GetParams(): params.TagBytes", params.TagBytes, 3)
-	AssertIntEqError(t, "pub.GetParams(): params.RowBytes", params.RowBytes, 9)
+	AssertInt32EqError(t, "pub.GetParams(): params.TableLen", params.GetTableLen(), 9)
+	AssertInt32EqError(t, "pub.GetParams(): params.MaxOutputBytes", params.GetMaxOutputBytes(), 5)
+	AssertInt32EqError(t, "pub.GetParams(): params.TagBytes", params.GetTagBytes(), 3)
+	AssertInt32EqError(t, "pub.GetParams(): params.RowBytes", params.GetRowBytes(), 9)
 	AssertIntEqError(t, "pub.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 
 	params = priv.GetParams()
 	if params == nil {
 		t.Error("pub.GetParams() = nil, expected success")
 	}
-	AssertIntEqError(t, "priv.GetParams(): params.TableLen", params.TableLen, 9)
-	AssertIntEqError(t, "priv.GetParams(): params.MaxOutputBytes", params.MaxOutputBytes, 5)
-	AssertIntEqError(t, "priv.GetParams(): params.TagBytes", params.TagBytes, 3)
-	AssertIntEqError(t, "priv.GetParams(): params.RowBytes", params.RowBytes, 9)
+	AssertInt32EqError(t, "priv.GetParams(): params.TableLen", params.GetTableLen(), 9)
+	AssertInt32EqError(t, "priv.GetParams(): params.MaxOutputBytes", params.GetMaxOutputBytes(), 5)
+	AssertInt32EqError(t, "priv.GetParams(): params.TagBytes", params.GetTagBytes(), 3)
+	AssertInt32EqError(t, "priv.GetParams(): params.RowBytes", params.GetRowBytes(), 9)
 	AssertIntEqError(t, "priv.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 }
 

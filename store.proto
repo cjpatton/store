@@ -1,0 +1,16 @@
+package store;
+
+message StoreParams {
+  optional int32 table_len = 1;
+  optional int32 max_output_bytes = 2;
+  optional int32 row_bytes = 3;
+  optional int32 tag_bytes = 4;
+  optional int32 salt_bytes = 5;
+  optional bytes salt = 6;
+}
+
+message StoreTable {
+  optional StoreParams params = 1;
+  optional bytes table = 2;
+  repeated int32 idx = 3;
+}

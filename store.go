@@ -4,7 +4,6 @@ package store
 
 // TODO(me) Missing features:
 //  * PubStore) <--> protobuf
-//  * NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error)
 
 /*
 // The next line gets things going on Mac:
@@ -60,6 +59,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -103,15 +103,6 @@ func CError(fn string, errNo C.int) Error {
 // Returned by New(), Get(), priv.GetIdx(), or priv.GetValue() if the C
 // implementation of HMAC returns an error.
 const ErrorHMAC = Error("HMAC failed")
-
-// The public parameters of Store, needed by both the client and server.
-type StoreParams struct {
-	TableLen       int
-	MaxOutputBytes int
-	RowBytes       int
-	TagBytes       int
-	Salt           []byte
-}
 
 // The public representation of the map.
 type PubStore struct {
@@ -192,6 +183,10 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	params := cParamsToStoreParams(&dict.params)
 
+	// Create priv.
+	//
+	// NOTE dict.salt is not set, and so priv.params.salt is not set. It's
+	// necessary to set it after calling C.dict_create().
 	priv, err := NewPrivStore(K, params)
 	if err != nil {
 		return nil, nil, err
@@ -205,13 +200,13 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		return nil, nil, CError("dict_create", errNo)
 	}
 
-	// Create compressed representation (no 0 rows).
-	pub.dict = C.dict_compress(dict)
-
 	// Copy salt to priv.params.
 	C.memcpy(unsafe.Pointer(priv.params.salt),
-		unsafe.Pointer(pub.dict.params.salt),
+		unsafe.Pointer(dict.params.salt),
 		C.size_t(priv.params.salt_bytes))
+
+	// Create compressed representation (no 0 rows).
+	pub.dict = C.dict_compress(dict)
 
 	return pub, priv, nil
 }
@@ -293,6 +288,7 @@ func (pub *PubStore) Free() {
 // NewPrivStore creates a new *PrivStore from a key and parameters.
 //
 // NOTE You must destroy this with priv.Free().
+// NOTE Called by New().
 func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
 
 	priv := new(PrivStore)
@@ -302,7 +298,7 @@ func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
 		return nil, Error(fmt.Sprintf("len(K) = %d, expected %d", len(K), KeyBytes))
 	}
 
-	priv.tinyCtx = C.tinyprf_new(C.int(params.TableLen))
+	priv.tinyCtx = C.tinyprf_new(C.int(params.GetTableLen()))
 	if priv.tinyCtx == nil {
 		return nil, Error("tableLen < 2")
 	}
@@ -381,12 +377,13 @@ func cBytesToString(str *C.char, bytes C.int) string {
 //
 // Called by pub.GetParams() and priv.GetParams().
 func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
-	params := new(StoreParams)
-	params.TableLen = int(cParams.table_length)
-	params.MaxOutputBytes = int(cParams.max_value_bytes)
-	params.RowBytes = int(cParams.row_bytes)
-	params.TagBytes = int(cParams.tag_bytes)
-	params.Salt = C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes)
+	params := &StoreParams{
+		TableLen:       proto.Int32(int32(cParams.table_length)),
+		MaxOutputBytes: proto.Int32(int32(cParams.max_value_bytes)),
+		RowBytes:       proto.Int32(int32(cParams.row_bytes)),
+		TagBytes:       proto.Int32(int32(cParams.tag_bytes)),
+		Salt:           C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes),
+	}
 	return params
 }
 
@@ -394,10 +391,10 @@ func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 //
 // Must call C.free(cParams.salt)
 func setCParamsFromStoreParams(cParams *C.dict_params_t, params *StoreParams) {
-	cParams.table_length = C.int(params.TableLen)
-	cParams.max_value_bytes = C.int(params.MaxOutputBytes)
-	cParams.row_bytes = C.int(params.RowBytes)
-	cParams.tag_bytes = C.int(params.TagBytes)
+	cParams.table_length = C.int(params.GetTableLen())
+	cParams.max_value_bytes = C.int(params.GetMaxOutputBytes())
+	cParams.row_bytes = C.int(params.GetRowBytes())
+	cParams.tag_bytes = C.int(params.GetTagBytes())
 	cParams.salt_bytes = C.int(len(params.Salt))
 	cBuf := C.CString(string(params.Salt))
 	C.memcpy(unsafe.Pointer(cParams.salt),
