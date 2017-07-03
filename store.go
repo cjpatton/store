@@ -150,13 +150,7 @@ func DeriveKeyFromPassword(password, salt []byte) []byte {
 // and must be freed before losing a reference to them.
 func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
-	// Check that K is the right length.
-	if len(K) != KeyBytes {
-		return nil, nil, fmt.Errorf("len(K) = %d, expected %d", len(K), KeyBytes)
-	}
-
 	pub := new(PubStore)
-	priv := new(PrivStore)
 
 	// Copy input/output pairs into C land.
 	itemCt := C.int(len(M))
@@ -184,6 +178,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		i++
 	}
 
+	// Allocate a new dictionary object.
 	tableLen := C.dict_compute_table_length(C.int(len(M)))
 	dict := C.dict_new(
 		tableLen,
@@ -195,21 +190,15 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	}
 	defer C.dict_free(dict)
 
-	priv.tinyCtx = C.tinyprf_new(tableLen)
-	if priv.tinyCtx == nil {
-		return nil, nil, Error("tableLen < 2")
-	}
+	params := cParamsToStoreParams(&dict.params)
 
-	cK := C.CString(string(K))
-	defer C.free(unsafe.Pointer(cK))
-	errNo := C.tinyprf_init(priv.tinyCtx, cK)
-	if errNo != C.OK {
-		priv.Free()
-		return nil, nil, CError("tinyprf_init", errNo)
+	priv, err := NewPrivStore(K, params)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// Create the dictionary.
-	errNo = C.dict_create(
+	errNo := C.dict_create(
 		dict, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
 	if errNo != C.OK {
 		priv.Free()
@@ -219,13 +208,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	// Create compressed representation (no 0 rows).
 	pub.dict = C.dict_compress(dict)
 
-	// Copy parameters to priv.
-	priv.params.table_length = pub.dict.params.table_length
-	priv.params.max_value_bytes = pub.dict.params.max_value_bytes
-	priv.params.tag_bytes = pub.dict.params.tag_bytes
-	priv.params.row_bytes = pub.dict.params.row_bytes
-	priv.params.salt_bytes = pub.dict.params.salt_bytes
-	priv.params.salt = (*C.char)(C.malloc(C.size_t(pub.dict.params.salt_bytes + 1)))
+	// Copy salt to priv.params.
 	C.memcpy(unsafe.Pointer(priv.params.salt),
 		unsafe.Pointer(pub.dict.params.salt),
 		C.size_t(priv.params.salt_bytes))
@@ -307,6 +290,36 @@ func (pub *PubStore) Free() {
 	C.cdict_free(pub.dict)
 }
 
+// NewPrivStore creates a new *PrivStore from a key and parameters.
+//
+// NOTE You must destroy this with priv.Free().
+func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
+
+	priv := new(PrivStore)
+
+	// Check that K is the right length.
+	if len(K) != KeyBytes {
+		return nil, Error(fmt.Sprintf("len(K) = %d, expected %d", len(K), KeyBytes))
+	}
+
+	priv.tinyCtx = C.tinyprf_new(C.int(params.TableLen))
+	if priv.tinyCtx == nil {
+		return nil, Error("tableLen < 2")
+	}
+	priv.params.salt = (*C.char)(C.malloc(C.size_t(len(params.Salt) + 1)))
+
+	cK := C.CString(string(K))
+	defer C.free(unsafe.Pointer(cK))
+	errNo := C.tinyprf_init(priv.tinyCtx, cK)
+	if errNo != C.OK {
+		priv.Free()
+		return nil, CError("tinyprf_init", errNo)
+	}
+
+	setCParamsFromStoreParams(&priv.params, params)
+	return priv, nil
+}
+
 // GetIdx computes the two indices of the table associated with input and
 // returns them.
 func (priv *PrivStore) GetIdx(input string) (int, int, error) {
@@ -375,6 +388,21 @@ func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 	params.TagBytes = int(cParams.tag_bytes)
 	params.Salt = C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes)
 	return params
+}
+
+// setCParamsFromStoreparams copies parameters to a *C.dict_params_t.
+//
+// Must call C.free(cParams.salt)
+func setCParamsFromStoreParams(cParams *C.dict_params_t, params *StoreParams) {
+	cParams.table_length = C.int(params.TableLen)
+	cParams.max_value_bytes = C.int(params.MaxOutputBytes)
+	cParams.row_bytes = C.int(params.RowBytes)
+	cParams.tag_bytes = C.int(params.TagBytes)
+	cParams.salt_bytes = C.int(len(params.Salt))
+	cBuf := C.CString(string(params.Salt))
+	C.memcpy(unsafe.Pointer(cParams.salt),
+		unsafe.Pointer(cBuf),
+		C.size_t(cParams.salt_bytes))
 }
 
 // getRealRow copies a row of the table and returns it.
