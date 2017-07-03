@@ -110,7 +110,7 @@ func TestGetParams(t *testing.T) {
 	defer pub.Free()
 	defer priv.Free()
 
-	params := pub.GetParams()
+	params := pub.GetTable().GetParams()
 	if params == nil {
 		t.Error("pub.GetParams() = nil, expected success")
 	}

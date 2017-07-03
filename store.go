@@ -271,31 +271,12 @@ func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	return pub.getRealRow(realIdx), nil
 }
 
-// GetTable copies the table to a new []byte and returns it.
-func (pub *PubStore) GetTable2() []byte {
-	rowBytes := int(pub.dict.params.row_bytes)
-	tableLen := int(pub.dict.compressed_table_length)
-	table := make([]byte, rowBytes*tableLen)
-	for i := 0; i < tableLen; i++ {
-		copy(table[i*rowBytes:(i+1)*rowBytes], pub.getRealRow(C.int(i)))
-	}
-	return table
-}
-
-// GetTableIdx copies the table index to a new []int and returns it.
-func (pub *PubStore) GetTableIdx() []int32 {
-	tableIdx := make([]int32, pub.dict.compressed_table_length)
-	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
-		tableIdx[i] = int32(C.get_int_list(pub.dict.idx, C.int(i)))
-	}
-	return tableIdx
-}
-
 // ToString returns a string representation of the table.
 func (pub *PubStore) ToString() string {
 	return pub.GetTable().String()
 }
 
+// GetTable returns a *StoreTable protobuf representation of the dictionary.
 func (pub *PubStore) GetTable() *StoreTable {
 	rowBytes := int(pub.dict.params.row_bytes)
 	tableLen := int(pub.dict.compressed_table_length)
@@ -308,15 +289,10 @@ func (pub *PubStore) GetTable() *StoreTable {
 		tableIdx[i] = int32(C.get_int_list(pub.dict.idx, C.int(i)))
 	}
 	return &StoreTable{
-		Params: pub.GetParams(),
+		Params: cParamsToStoreParams(&pub.dict.params),
 		Table:  table,
 		Idx:    tableIdx,
 	}
-}
-
-// GetParams returns the public parameters of the data structure.
-func (pub *PubStore) GetParams() *StoreParams {
-	return cParamsToStoreParams(&pub.dict.params)
 }
 
 // Free deallocates memory associated with the underlying C implementation of
