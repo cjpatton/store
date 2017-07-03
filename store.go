@@ -234,6 +234,7 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	return C.GoStringN(cOutput, cOutputBytes), nil
 }
 
+// GetRow returns the row of the table associated with idx.
 func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	if idx < 0 || idx >= int(pub.dict.params.table_length) {
 		return nil, errors.New("index out of range")
@@ -243,6 +244,7 @@ func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	return pub.getRealRow(realIdx), nil
 }
 
+// GetTable copies the table to a new [][]byte and returns it.
 func (pub *PubStore) GetTable() [][]byte {
 	table := make([][]byte, pub.dict.compressed_table_length)
 	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
@@ -251,6 +253,7 @@ func (pub *PubStore) GetTable() [][]byte {
 	return table
 }
 
+// GetTableIdx copies the table index to a new []int and returns it.
 func (pub *PubStore) GetTableIdx() []int {
 	tableIdx := make([]int, pub.dict.compressed_table_length)
 	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
@@ -259,6 +262,7 @@ func (pub *PubStore) GetTableIdx() []int {
 	return tableIdx
 }
 
+// ToString returns a string representation of the table.
 func (pub *PubStore) ToString() string {
 	table := pub.GetTable()
 	idx := pub.GetTableIdx()
@@ -269,14 +273,19 @@ func (pub *PubStore) ToString() string {
 	return str
 }
 
+// GetParams returns the public parameters of the data structure.
 func (pub *PubStore) GetParams() *StoreParams {
 	return cParamsToStoreParams(&pub.dict.params)
 }
 
+// Free deallocates memory associated with the underlying C implementation of
+// the data structure.
 func (pub *PubStore) Free() {
 	C.cdict_free(pub.dict)
 }
 
+// GetIdx computes the two indices of the table associated with input and
+// returns them.
 func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 	cInput := C.CString(input)
 	defer C.free(unsafe.Pointer(cInput))
@@ -289,6 +298,7 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 	return int(x), int(y), nil
 }
 
+// GetValue computes the output associated with the input and the table rows.
 func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
 	cInput := C.CString(input)
 	// FIXME(me) Better way to do the following?
@@ -313,10 +323,13 @@ func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
 	return C.GoStringN(cOutput, cOutputBytes), nil
 }
 
+// GetParams returns the public parameters of the data structure.
 func (priv *PrivStore) GetParams() *StoreParams {
 	return cParamsToStoreParams(&priv.params)
 }
 
+// Free deallocates moemory associated with the C implementation of the
+// underlying data structure.
 func (priv *PrivStore) Free() {
 	C.free(unsafe.Pointer(priv.params.salt))
 	C.tinyprf_free(priv.tinyCtx)
@@ -327,6 +340,10 @@ func cBytesToString(str *C.char, bytes C.int) string {
 	return C.GoStringN(str, bytes)
 }
 
+// cParamsToStoreParams creates *StoreParams from a *C.dict_params_t, making a
+// deep copy of the salt.
+//
+// Called by pub.GetParams() and priv.GetParams().
 func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 	params := new(StoreParams)
 	params.TableLen = int(cParams.table_length)
@@ -337,6 +354,7 @@ func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 	return params
 }
 
+// getRealRow copies a row of the table and returns it.
 func (pub *PubStore) getRealRow(idx C.int) []byte {
 	rowPtr := C.get_row_ptr(pub.dict.table, idx, pub.dict.params.row_bytes)
 	return C.GoBytes(unsafe.Pointer(rowPtr), pub.dict.params.row_bytes)

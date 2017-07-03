@@ -23,7 +23,7 @@ var badM = map[string]string{
 	"cool": string(make([]byte, MaxRowBytes-TagBytes)),
 }
 
-// TODO Does testing have these sorts of functions already.
+// TODO Does testing have these sorts of functions already?
 func AssertIntEqError(t *testing.T, name string, got, exp int) {
 	if got != exp {
 		t.Errorf("%s = %d, expected %d", name, got, exp)
@@ -36,15 +36,16 @@ func AssertStringEqError(t *testing.T, name string, got, exp string) {
 	}
 }
 
+// Test that key generation and generation output a key of the correct length.
 func TestKey(t *testing.T) {
 	AssertIntEqError(t, "len(GenerateKey()))", len(GenerateKey()), KeyBytes)
-
 	password := []byte("hadi")
 	salt := []byte("1947")
 	K := DeriveKeyFromPassword(password, salt)
 	AssertIntEqError(t, "len(DeriveKeyFromPassword()))", len(K), KeyBytes)
 }
 
+// Test New() good and bad inputs.
 func TestNew(t *testing.T) {
 
 	// Test with map with a value that is too long.
@@ -93,6 +94,7 @@ func TestNew(t *testing.T) {
 	defer priv1.Free()
 }
 
+// Tet pub.GetParams() and priv.GetParams().
 func TestGetParams(t *testing.T) {
 	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
@@ -122,6 +124,7 @@ func TestGetParams(t *testing.T) {
 	AssertIntEqError(t, "priv.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 }
 
+// Test Get().
 func TestGet(t *testing.T) {
 	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
@@ -146,6 +149,7 @@ func TestGet(t *testing.T) {
 	}
 }
 
+// Test priv.GetIdx, pub.GetRows, and priv.GetValue().
 func TestGetIdxRowsValue(t *testing.T) {
 	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
