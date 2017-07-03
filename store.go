@@ -237,7 +237,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 // output, where M is the map represented by (pub, priv).
 func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	cInput := C.CString(input)
-	// FIXME(me) Better way to do the following?
+	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
 	cOutputBytes := C.int(0)
 	defer C.free(unsafe.Pointer(cInput))
@@ -262,11 +262,13 @@ func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	return pub.getRealRow(realIdx), nil
 }
 
-// GetTable copies the table to a new [][]byte and returns it.
-func (pub *PubStore) GetTable() [][]byte {
-	table := make([][]byte, pub.dict.compressed_table_length)
-	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
-		table[i] = pub.getRealRow(C.int(i))
+// GetTable copies the table to a new []byte and returns it.
+func (pub *PubStore) GetTable() []byte {
+	rowBytes := int(pub.dict.params.row_bytes)
+	tableLen := int(pub.dict.compressed_table_length)
+	table := make([]byte, rowBytes*tableLen)
+	for i := 0; i < tableLen; i++ {
+		copy(table[i*rowBytes:(i+1)*rowBytes], pub.getRealRow(C.int(i)))
 	}
 	return table
 }
@@ -282,11 +284,14 @@ func (pub *PubStore) GetTableIdx() []int {
 
 // ToString returns a string representation of the table.
 func (pub *PubStore) ToString() string {
+	rowBytes := int(pub.dict.params.row_bytes)
+	tableLen := int(pub.dict.compressed_table_length)
 	table := pub.GetTable()
 	idx := pub.GetTableIdx()
 	str := ""
-	for i := 0; i < len(table); i++ {
-		str += fmt.Sprintf("%-3d %s\n", idx[i], hex.EncodeToString(table[i]))
+	for i := 0; i < tableLen; i++ {
+		row := table[i*rowBytes : (i+1)*rowBytes]
+		str += fmt.Sprintf("%-3d %s\n", idx[i], hex.EncodeToString(row))
 	}
 	return str
 }
@@ -319,7 +324,7 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 // GetValue computes the output associated with the input and the table rows.
 func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
 	cInput := C.CString(input)
-	// FIXME(me) Better way to do the following?
+	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
 	defer C.free(unsafe.Pointer(cInput))
 	defer C.free(unsafe.Pointer(cOutput))
