@@ -97,10 +97,6 @@ func CError(fn string, errNo C.int) Error {
 	return Error(fmt.Sprintf("%s returns error %d", fn, errNo))
 }
 
-// Returned by New(), Get(), priv.GetIdx(), or priv.GetValue() if the C
-// implementation of HMAC returns an error.
-const ErrorHMAC = Error("HMAC failed")
-
 // The public representation of the map.
 type PubStore struct {
 	dict *C.cdict_t
@@ -399,10 +395,10 @@ func cBytesToString(str *C.char, bytes C.int) string {
 // Called by pub.GetParams() and priv.GetParams().
 func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 	return &StoreParams{
-		TableLen:       proto.Int32(int32(cParams.table_length)),
-		MaxOutputBytes: proto.Int32(int32(cParams.max_value_bytes)),
-		RowBytes:       proto.Int32(int32(cParams.row_bytes)),
-		TagBytes:       proto.Int32(int32(cParams.tag_bytes)),
+		TableLen:       *proto.Int32(int32(cParams.table_length)),
+		MaxOutputBytes: *proto.Int32(int32(cParams.max_value_bytes)),
+		RowBytes:       *proto.Int32(int32(cParams.row_bytes)),
+		TagBytes:       *proto.Int32(int32(cParams.tag_bytes)),
 		Salt:           C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes),
 	}
 }

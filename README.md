@@ -76,19 +76,20 @@ $ sudo apt-get install golang-go
 On Mac, download the [pkg](https://golang.org/dl/) and install it.
 
 
-
 Building `store.pb.go`
 ----------------------
 
-**You only need to do this if you want to modify the code.**
-This project uses protcool buffers. To build the protobuf for go, do
+**You only need to do this if you want to modify the code.** This project uses
+protcool buffers and remote procedure calls. To build you'll first need the
+lastest version of `protoc'. Go to [the gRPC
+documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
+for instructions. To build, run
 
 ```
-$ sudo apt install protobuf-compiler
-$ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-$ go install github.com/golang/protobuf/{proto,protoc-gen-go}i
-$ protoc --go_out=. *.proto
+  $ protoc -I . store.proto --go_out=plugins=grpc:.
 ```
+
+in the root project directory.
 
 Note Copyright
 ---------
