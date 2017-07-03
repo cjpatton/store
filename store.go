@@ -55,7 +55,6 @@ import "C"
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"unsafe"
 
@@ -241,7 +240,7 @@ func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 }
 
 // GetTable copies the table to a new []byte and returns it.
-func (pub *PubStore) GetTable() []byte {
+func (pub *PubStore) GetTable2() []byte {
 	rowBytes := int(pub.dict.params.row_bytes)
 	tableLen := int(pub.dict.compressed_table_length)
 	table := make([]byte, rowBytes*tableLen)
@@ -252,26 +251,35 @@ func (pub *PubStore) GetTable() []byte {
 }
 
 // GetTableIdx copies the table index to a new []int and returns it.
-func (pub *PubStore) GetTableIdx() []int {
-	tableIdx := make([]int, pub.dict.compressed_table_length)
+func (pub *PubStore) GetTableIdx() []int32 {
+	tableIdx := make([]int32, pub.dict.compressed_table_length)
 	for i := 0; i < int(pub.dict.compressed_table_length); i++ {
-		tableIdx[i] = int(C.get_int_list(pub.dict.idx, C.int(i)))
+		tableIdx[i] = int32(C.get_int_list(pub.dict.idx, C.int(i)))
 	}
 	return tableIdx
 }
 
 // ToString returns a string representation of the table.
 func (pub *PubStore) ToString() string {
+	return pub.GetTable().String()
+}
+
+func (pub *PubStore) GetTable() *StoreTable {
 	rowBytes := int(pub.dict.params.row_bytes)
 	tableLen := int(pub.dict.compressed_table_length)
-	table := pub.GetTable()
-	idx := pub.GetTableIdx()
-	str := ""
+	table := make([]byte, rowBytes*tableLen)
 	for i := 0; i < tableLen; i++ {
-		row := table[i*rowBytes : (i+1)*rowBytes]
-		str += fmt.Sprintf("%-3d %s\n", idx[i], hex.EncodeToString(row))
+		copy(table[i*rowBytes:(i+1)*rowBytes], pub.getRealRow(C.int(i)))
 	}
-	return str
+	tableIdx := make([]int32, tableLen)
+	for i := 0; i < tableLen; i++ {
+		tableIdx[i] = int32(C.get_int_list(pub.dict.idx, C.int(i)))
+	}
+	return &StoreTable{
+		Params: pub.GetParams(),
+		Table:  table,
+		Idx:    tableIdx,
+	}
 }
 
 // GetParams returns the public parameters of the data structure.
@@ -377,14 +385,13 @@ func cBytesToString(str *C.char, bytes C.int) string {
 //
 // Called by pub.GetParams() and priv.GetParams().
 func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
-	params := &StoreParams{
+	return &StoreParams{
 		TableLen:       proto.Int32(int32(cParams.table_length)),
 		MaxOutputBytes: proto.Int32(int32(cParams.max_value_bytes)),
 		RowBytes:       proto.Int32(int32(cParams.row_bytes)),
 		TagBytes:       proto.Int32(int32(cParams.tag_bytes)),
 		Salt:           C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes),
 	}
-	return params
 }
 
 // setCParamsFromStoreparams copies parameters to a *C.dict_params_t.
