@@ -2,8 +2,15 @@
 // All rights reserved.
 package store
 
-// TODO(me) Missing features:
-//  * PubStore) <--> protobuf
+import (
+	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
+	"unsafe"
+
+	"github.com/golang/protobuf/proto"
+	"golang.org/x/crypto/pbkdf2"
+)
 
 /*
 // The next line gets things going on Mac:
@@ -52,15 +59,6 @@ char *get_row_ptr(char *table, int row, int row_bytes) {
 }
 */
 import "C"
-import (
-	"crypto/rand"
-	"crypto/sha256"
-	"fmt"
-	"unsafe"
-
-	"github.com/golang/protobuf/proto"
-	"golang.org/x/crypto/pbkdf2"
-)
 
 // Number of bytes to use for the salt. The salt is a random string used to
 // construct the table. It is prepended to the input of each HMAC call.
@@ -210,10 +208,44 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	return pub, priv, nil
 }
 
+// NewPubStoreFromTable creates a new *PubStore from a *StoreTable protobuf.
+//
+// NOTE You must destrohy the output with pub.Free().
+func NewPubStoreFromTable(table *StoreTable) *PubStore {
+	pub := new(PubStore)
+	pub.dict = (*C.cdict_t)(C.malloc(C.sizeof_cdict_t))
+
+	// Allocate memory for salt + 1 tweak byte and set the parameters.
+	pub.dict.params.salt = (*C.char)(C.malloc(C.size_t(len(table.GetParams().Salt) + 1)))
+	setCParamsFromStoreParams(&pub.dict.params, table.GetParams())
+
+	// Allocate memory for table + 1 zero row and copy the table.
+	rowBytes := C.int(table.GetParams().GetRowBytes())
+	realTableLen := C.int(len(table.Table)) / rowBytes
+	pub.dict.compressed_table_length = realTableLen
+	pub.dict.table = (*C.char)(C.malloc(C.size_t((realTableLen + 1) * rowBytes)))
+	cBuf := C.CString(string(table.Table))
+	defer C.free(unsafe.Pointer(cBuf))
+	C.memcpy(unsafe.Pointer(pub.dict.table),
+		unsafe.Pointer(cBuf),
+		C.size_t(realTableLen*rowBytes))
+	C.memset(unsafe.Pointer(C.get_row_ptr(pub.dict.table, realTableLen, rowBytes)),
+		0, C.size_t(rowBytes))
+
+	// Allocate memory for index and copy it.
+	pub.dict.idx = (*C.int)(C.malloc(C.size_t(realTableLen * C.sizeof_int)))
+	for i := 0; i < int(realTableLen); i++ {
+		C.set_int_list(pub.dict.idx, C.int(i), C.int(table.Idx[i]))
+	}
+
+	return pub
+}
+
 // Get queries input on the structure (pub, priv). The result is M[input] =
 // output, where M is the map represented by (pub, priv).
 func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	cInput := C.CString(input)
+
 	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
 	cOutputBytes := C.int(0)
@@ -298,7 +330,6 @@ func (pub *PubStore) Free() {
 // NOTE You must destroy this with priv.Free().
 // NOTE Called by New().
 func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
-
 	priv := new(PrivStore)
 
 	// Check that K is the right length.
@@ -306,13 +337,18 @@ func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
 		return nil, Error(fmt.Sprintf("len(K) = %d, expected %d", len(K), KeyBytes))
 	}
 
+	// Create new tinyprf context.
 	priv.tinyCtx = C.tinyprf_new(C.int(params.GetTableLen()))
 	if priv.tinyCtx == nil {
 		return nil, Error("tableLen < 2")
 	}
+
+	// Allocate memory for salt.
 	priv.params.salt = (*C.char)(C.malloc(C.size_t(len(params.Salt) + 1)))
 
+	// Initialize tinyprf.
 	cK := C.CString(string(K))
+	defer C.memset(unsafe.Pointer(cK), 0, C.size_t(KeyBytes))
 	defer C.free(unsafe.Pointer(cK))
 	errNo := C.tinyprf_init(priv.tinyCtx, cK)
 	if errNo != C.OK {
@@ -320,6 +356,7 @@ func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
 		return nil, CError("tinyprf_init", errNo)
 	}
 
+	// Set parameters.
 	setCParamsFromStoreParams(&priv.params, params)
 	return priv, nil
 }

@@ -3,6 +3,7 @@
 package store
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -100,7 +101,7 @@ func TestNew(t *testing.T) {
 	defer priv1.Free()
 }
 
-// Tet pub.GetParams() and priv.GetParams().
+// Test pub.GetParams() and priv.GetParams().
 func TestGetParams(t *testing.T) {
 	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
@@ -186,5 +187,28 @@ func TestGetIdxRowsValue(t *testing.T) {
 				t.Errorf("out = %q, expected %q", out, val)
 			}
 		}
+	}
+}
+
+// Test NewPubStoreFromTable().
+func TestNewPubStoreFromTable(t *testing.T) {
+	pub, priv, err := New(goodK, goodM)
+	if err != nil {
+		t.Fatalf("New(goodK, goodM) fails: %s", err)
+	}
+	defer pub.Free()
+	defer priv.Free()
+
+	pub2 := NewPubStoreFromTable(pub.GetTable())
+	defer pub2.Free()
+
+	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())
+
+	for in, val := range goodM {
+		out2, err := Get(pub2, priv, in)
+		if err != nil {
+			t.Fatalf("Get(pub2, priv, %q) fails: %s", in, err)
+		}
+		AssertStringEqError(t, fmt.Sprintf("Get(pub2, priv, %q)", in), out2, val)
 	}
 }
