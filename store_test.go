@@ -135,7 +135,7 @@ func TestGet(t *testing.T) {
 
 	badInput := "tragically"
 	output, err := Get(pub, priv, badInput)
-	if err == nil {
+	if err != ItemNotFound {
 		t.Error("st.Get(badInput) succeeded, expected error")
 	}
 

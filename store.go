@@ -2,7 +2,6 @@
 // All rights reserved.
 package store
 
-// TODO(me) Clean up errors.
 // TODO(me) Missing features:
 //  * PubStore) <--> protobuf
 //  * NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error)
@@ -58,7 +57,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"unsafe"
 
@@ -83,6 +81,28 @@ const MaxOutputBytes = MaxRowBytes - TagBytes - 1
 
 // Length of the HMAC key. HMAC_KEY_BYTES is defined in c/const.h.
 const KeyBytes = C.HMAC_KEY_BYTES
+
+type Error string
+
+func (err Error) Error() string {
+	return string(err)
+}
+
+// Returned by Get() and priv.GetValue() if the input was not found in the
+// dictionary.
+const ItemNotFound = Error("item not found")
+
+// Returned by GetRow() in case idx not in the table index.
+const ErrorIdx = Error("index out of range")
+
+// CError propagates an error from the internal C code.
+func CError(fn string, errNo C.int) Error {
+	return Error(fmt.Sprintf("%s returns error %d", fn, errNo))
+}
+
+// Returned by New(), Get(), priv.GetIdx(), or priv.GetValue() if the C
+// implementation of HMAC returns an error.
+const ErrorHMAC = Error("HMAC failed")
 
 // The public parameters of Store, needed by both the client and server.
 type StoreParams struct {
@@ -132,7 +152,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Check that K is the right length.
 	if len(K) != KeyBytes {
-		return nil, nil, errors.New("bad inputBytes")
+		return nil, nil, fmt.Errorf("len(K) = %d, expected %d", len(K), KeyBytes)
 	}
 
 	pub := new(PubStore)
@@ -171,13 +191,13 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		C.int(TagBytes),
 		C.int(SaltBytes))
 	if dict == nil {
-		return nil, nil, errors.New("dict_new")
+		return nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
 	}
 	defer C.dict_free(dict)
 
 	priv.tinyCtx = C.tinyprf_new(tableLen)
 	if priv.tinyCtx == nil {
-		return nil, nil, errors.New("tinyprf_new")
+		return nil, nil, Error("tableLen < 2")
 	}
 
 	cK := C.CString(string(K))
@@ -185,21 +205,19 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	errNo := C.tinyprf_init(priv.tinyCtx, cK)
 	if errNo != C.OK {
 		priv.Free()
-		return nil, nil, errors.New("tinyprf_init")
+		return nil, nil, CError("tinyprf_init", errNo)
 	}
 
+	// Create the dictionary.
 	errNo = C.dict_create(
 		dict, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
 	if errNo != C.OK {
 		priv.Free()
-		return nil, nil, errors.New("dict_create")
+		return nil, nil, CError("dict_create", errNo)
 	}
 
+	// Create compressed representation (no 0 rows).
 	pub.dict = C.dict_compress(dict)
-	if pub.dict == nil {
-		priv.Free()
-		return nil, nil, errors.New("dict_compress")
-	}
 
 	// Copy parameters to priv.
 	priv.params.table_length = pub.dict.params.table_length
@@ -227,9 +245,9 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	errNo := C.cdict_get(
 		pub.dict, priv.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
 	if errNo == C.ERR_DICT_BAD_KEY {
-		return "", errors.New("item not found")
+		return "", ItemNotFound
 	} else if errNo != C.OK {
-		return "", errors.New("cdict_get")
+		return "", CError("cdict_get", errNo)
 	}
 	return C.GoStringN(cOutput, cOutputBytes), nil
 }
@@ -237,7 +255,7 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 // GetRow returns the row of the table associated with idx.
 func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	if idx < 0 || idx >= int(pub.dict.params.table_length) {
-		return nil, errors.New("index out of range")
+		return nil, ErrorIdx
 	}
 	realIdx := C.cdict_binsearch(pub.dict, C.int(idx), 0,
 		pub.dict.compressed_table_length)
@@ -293,7 +311,7 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 	errNo := C.dict_compute_rows(
 		priv.params, priv.tinyCtx, cInput, C.int(len(input)), &x, &y)
 	if errNo != C.OK {
-		return 0, 0, errors.New("dict_compute_rows")
+		return 0, 0, CError("dict_compute_rows", errNo)
 	}
 	return int(x), int(y), nil
 }
@@ -316,9 +334,9 @@ func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
 		C.int(len(input)), xRow, yRow, cOutput, &cOutputBytes)
 
 	if errNo == C.ERR_DICT_BAD_KEY {
-		return "", errors.New("item not found")
+		return "", ItemNotFound
 	} else if errNo != C.OK {
-		return "", errors.New("dict_compute_value")
+		return "", CError("dict_compute_value", errNo)
 	}
 	return C.GoStringN(cOutput, cOutputBytes), nil
 }

@@ -122,7 +122,11 @@ int dict_generate_graph(dict_t *ctx, tiny_ctx *tiny, char **key,
 // Constructs a dictionary from the sequences 'key' and 'value', each of length
 // 'item_ct'.
 //
-// Returns OK if success and ERR if tiny->g erred.
+// Returns:
+//  - OK if successful,
+//  - ERR_DICT_TOO_MANY_ITEMS,
+//  - ERR_DICT_LONG_VALUE, or
+//  - ERR_HMAC.
 int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
     char **value, int *value_bytes, int item_ct);
 
@@ -131,9 +135,8 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
 //
 // Returns:
 //  - OK if successful
-//  - ERR_DICT_BAD_KEY if, key was not found,
 //  - ERR_HMAC or ERR_SHA512 if tiny->h erred, or
-//  - BAD if tiny->h failed to find a uniform output.
+//  - BAD if tinyprf or tinyhash failed to find a uniform output.
 int dict_compute_rows(dict_params_t params, tiny_ctx *tiny, const char *key,
     int key_bytes, int *x, int *y);
 
