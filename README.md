@@ -2,8 +2,9 @@ Good times with data structures
 ===============================
 TODO(cjpatton) Describe what's going on at a high level.
 
-**SECURITY DISCLAIMER:** This code is related to a research paper currently in
-submission. The underlying cryptographic scheme still needs a proof.
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY
+DISCLAIMER:** This code is related to a research paper currently in submission.
+The underlying cryptographic scheme still needs a proof.
 
 Package `store`
 ---------------
@@ -139,8 +140,9 @@ the client, do:
 $ cd hadee_client && go install && hadee_client cjpatton
 ```
 
-**SECURITY WARNING:** Do NOT use this for anything real. As is, the protocol is
-susceptible to dictionary attacks on the master password.
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY WARNING:**
+Do NOT use this for anything real. As is, the protocol is susceptible to
+dictionary attacks on the master password.
 
 Modifying `store.proto`
 ----------------------
