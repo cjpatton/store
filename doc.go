@@ -65,5 +65,7 @@ hence, each output must be at most 60 bytes long.
 Note that this makes the data structure probabilistic, since there is a small
 chance that, when the query is evaluated, the tag bytes will all equal 0, even
 though the input is not correct.
+
+TODO(me) Add doc tests.
 */
 package store

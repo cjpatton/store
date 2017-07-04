@@ -13,23 +13,27 @@ not trusted.
 
 The client possesses a secret key `K` and data `M` (of type `map[string]string`.
 It executes:
-
-```pub, priv, err := store.New(K, M)```
+```
+pub, priv, err := store.New(K, M)
+```
 
 and transmits `pub`, the public representation of `M`, to the server.
 To compute `M[input]`, the client executes:
-
-```x, y, err := priv.GetIdx(input)```
+```
+x, y, err := priv.GetIdx(input)
+```
 
 and sends `x` and `y` to the server. These are integers corresponding to rows in
 a table (of type `[][]byte`) encoded by `pub`. The server executes:
-
-```pubShare, err := pub.GetShare(x, y)```
+```
+pubShare, err := pub.GetShare(x, y)
+```
 
 and sends `pubShare` (of type `[]byte`) to the client. (This is the XOR of the
 two rows corresponding to `x` and `y`.) Finally, the client executes:
-
-```output, err := priv.GetValue(input, pubShare)```
+```
+output, err := priv.GetValue(input, pubShare)
+```
 
 This combines `pubShare` with a private share computed from `input` and the key.
 The result is `output = M[input]`.  Note that the server is not entrusted with

@@ -2,8 +2,6 @@
 // All rights reserved.
 package store
 
-// TODO(me) Rename GetRow.
-
 import (
 	"crypto/rand"
 	"crypto/sha256"
@@ -205,7 +203,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 // NewPubStoreFromTable creates a new *PubStore from a *StoreTable protobuf.
 //
-// NOTE You must destrohy the output with pub.Free().
+// NOTE You must destroy the output with pub.Free().
 func NewPubStoreFromTable(table *StoreTable) *PubStore {
 	pub := new(PubStore)
 	pub.dict = (*C.dict_t)(C.malloc(C.sizeof_dict_t))
@@ -235,8 +233,6 @@ func NewPubStoreFromTable(table *StoreTable) *PubStore {
 // output, where M is the map represented by (pub, priv).
 func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	cInput := C.CString(input)
-
-	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
 	cOutputBytes := C.int(0)
 	defer C.free(unsafe.Pointer(cInput))
@@ -351,7 +347,6 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 // GetValue computes the output associated with the input and the table rows.
 func (priv *PrivStore) GetValue(input string, pubShare []byte) (string, error) {
 	cInput := C.CString(input)
-	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
 	defer C.free(unsafe.Pointer(cInput))
 	defer C.free(unsafe.Pointer(cOutput))
