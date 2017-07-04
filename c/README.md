@@ -1,11 +1,13 @@
 struct
 ======
 
-Implementations of (keyed) data structures, including **Bloom filters** and
-**Bloomier filters**. See `README.md` in the root project directory for
-installation instructions.
+Implementations of (keyed) data structures, including a [Bloom
+filters](https://en.wikipedia.org/wiki/Bloom_filter) (`bloom.{h,c}`) and
+[Bloomier filters](https://arxiv.org/abs/0807.0928) (`dicet.{h,c}`).
 
-TODO(me) Give details about tiny, bloom, and dict and design rationale.
+See `README.md` in the root project directory for installation instructions.
+
+TODO(cjpatton) Give details about tiny, bloom, and dict and design rationale.
 
 TODO
 ----

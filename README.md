@@ -1,6 +1,9 @@
 Good times with data structures
 ===============================
+TODO(cjpatton) Describe what's going on at a high level.
 
+**SECURITY DISCLAIMER:** This code is related to a research paper currently in
+submission. The underlying cryptographic scheme still needs a proof.
 
 Package `store`
 ---------------
@@ -48,9 +51,9 @@ The `StoreProvider` RPC service
 `store.proto` provides a simple [remote procedure
 call](http://www.grpc.io/docs/quickstart/go.html) for requesting public shares.
 The `user` computes `pub` from its map `M` and key `K` and provisions the
-service provider (out-of-band) with `pub`.  The requests consists of the `user`
+service provider (out-of-band) with `pub`.  The request consists of the `user`
 and the table rows `x` and `y`, and the response consists of the `pubShare`
-computed from `x`, `y`, and the `pub` associated with `user`.
+computed from `x`, `y`, and `pub`.
 
 This simple RPC provides no authentication, so any *anyone* can get the *entire*
 public store of *any* user. This is not a problem, however, as long as the
