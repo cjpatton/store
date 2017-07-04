@@ -1,6 +1,7 @@
 Good times with data structures
 ===============================
-TODO(cjpatton) Describe what's going on at a high level.
+- TODO(cjpatton) Describe what's going on at a high level.
+- TODO(cjpatton) Add doc tests and check in docs.
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY
 DISCLAIMER:** This code is related to a research paper currently in submission.

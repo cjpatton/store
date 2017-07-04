@@ -7,10 +7,7 @@ filters](https://en.wikipedia.org/wiki/Bloom_filter) (`bloom.{h,c}`) and
 
 See `README.md` in the root project directory for installation instructions.
 
-TODO(cjpatton) Give details about tiny, bloom, and dict and design rationale.
-
-TODO
-----
- * Rename. There's likely a lot of collisions with `libstruct.so` and
+- TODO(cjpatton) Give details about tiny, bloom, and dict and design rationale.
+- TODO(cjpatton) Rename. There's likely a lot of collisions with `libstruct.so` and
    `/usr/local/include/struct`.
- * Function for computing BF parameters.
+- TODO(cjpatton) Function for computing BF parameters.
