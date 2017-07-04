@@ -1,14 +1,13 @@
 Good times with data structures
 ===============================
 
-A super light-weight password manager for paranoid people who like Go.
 
 Package `store`
 ---------------
 Package store provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
-protocols whereby the service is trusted to provide storage, but is otherwise
+protocols where the service is trusted to provide storage, but is otherwise
 not trusted.
 
 The client possesses a secret key `K` and data `M` (of type `map[string]string`.
@@ -44,9 +43,23 @@ client. The data structure is designed so that _no_ information about `input` or
 Note that the length of each `output` is limited to 60 bytes; see the Go
 documentation for details.
 
+The `StoreProvider` RPC service
+-------------------------------
+`store.proto` provides a simple [remote procedure
+call](http://www.grpc.io/docs/quickstart/go.html) for requesting public shares.
+The `user` computes `pub` from its map `M` and key `K` and provisions the
+service provider (out-of-band) with `pub`.  The requests consists of the `user`
+and the table rows `x` and `y`, and the response consists of the `pubShare`
+computed from `x`, `y`, and the `pub` associated with `user`.
+
+This simple RPC provides no authentication, so any *anyone* can get the *entire*
+public store of *any* user. This is not a problem, however, as long as the
+adversary doesn't know (or can't guess) `K`. But if `K` is derived from a
+password, for example, then the contents of `pub` are susceptible to dictionary
+attacks.
+
 Installation
 ------------
-
 First, you'll need Go. To get the latest version on Ubuntu, do
 
 ```
@@ -97,16 +110,40 @@ $ sudo make install && sudo ldconfig
 This builds a file called `libstruct.so` and moves it to `/usr/local/lib` and
 copies the header files to `/usr/local/include/struct`.
 
+Now you should be able to build the package. To run tests, do
+```
+$ go test github.com/cjpatton/store
+```
+
 Running the toy application
 ---------------------------
-TODO(me) Instructions on running the sample application.
+`hadee_server/hadee_server.go` implements the RPC service and serves a single
+user. It takes as input the user name and a file containing the public store.
+To run it, first generate a sample store by doing:
+```
+$ cd hadee_gen && go install && hadee_gen
+```
+It will prompt you for a "master password" used to derive a key, which is used
+to generate the structure. This writes a file `store.pub` to the current
+directory. (The map it represents is hard-coded in the Go code.) To run the
+server, do:
+```
+$ cd hadee_server && go install && hadee_server cjpatton store.pub
+```
+This opens a TCP socket on localhost:50051 and begins serving requests. To run
+the client, do:
+```
+$ cd hadee_client && go install && hadee_client cjpatton
+```
 
+**SECURITY WARNING:** Do NOT use this for anything real. As is, the protocol is
+susceptible to dictionary attacks on the master password.
 
 Modifying `store.proto`
 ----------------------
 **You only need to do this if you want to modify the protocol buffers or RPC.**
 This project uses protcool buffers and remote procedure calls. To build you'll
-first need the lastest version of `protoc`. Go to [the gRPC
+first need the lastest version of `protoc`. Go to [protobuf
 documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
 for instructions. To build `store.pb.go`, go to
 `$HOME/go/src/github.com/cjpatton/store/` and run

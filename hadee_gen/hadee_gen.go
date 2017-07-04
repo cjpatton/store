@@ -1,8 +1,8 @@
 // Copyright (c) 2017, Christopher Patton.
 // All rights reserved.
 //
-// hadee_gen generates a new table from a password. It outputs a file called
-// table.pub.
+// hadee_gen generates a new store from a password. It outputs a file called
+// store.pub.
 package main
 
 import (
@@ -43,9 +43,9 @@ func main() {
 		log.Fatalln("pub.GetTable().Marshal() fails:", err)
 	}
 
-	if err := ioutil.WriteFile("table.pub", pubString, 0644); err != nil {
+	if err := ioutil.WriteFile("store.pub", pubString, 0644); err != nil {
 		log.Fatalln("Writing table fails:", err)
 	}
 
-	log.Println("Wrote table.pub.")
+	log.Println("Wrote store.pub.")
 }

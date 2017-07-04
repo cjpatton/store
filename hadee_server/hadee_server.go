@@ -5,9 +5,9 @@
 // store.proto. It services requests for only one user, whose identity and table
 // are specified via the command line.
 //
-// Usage: hadee_serv user table.pub
+// Usage: hadee_serv user store.pub
 //   user: a string
-//   table.pub: a file encoding a store.StoreTable protobuf
+//   store.pub: a file encoding a store.StoreTable protobuf
 package main
 
 import (
@@ -27,11 +27,15 @@ const (
 	port = ":50051"
 )
 
+// HadeeStoreProvider implements the StoreProvider RPC.
 type HadeeStoreProvider struct {
 	pubs   map[string](*store.PubStore)
 	params map[string](*store.StoreParams)
 }
 
+// NewHadeeStoreProvider creates a new HadeeStoreProvider.
+//
+// NOTE Must be dstroyed with s.CleanUp().
 func NewHadeeStoreProvider(user string, table *store.StoreTable) *HadeeStoreProvider {
 	s := new(HadeeStoreProvider)
 	s.pubs = make(map[string](*store.PubStore))
@@ -41,6 +45,8 @@ func NewHadeeStoreProvider(user string, table *store.StoreTable) *HadeeStoreProv
 	return s
 }
 
+// CleanUp frees memory allocated to each pub in pubs. This is necessary because
+// the underlying data structure is implemented in C.
 func (s *HadeeStoreProvider) CleanUp() {
 	for _, pub := range s.pubs {
 		if pub != nil {
@@ -74,24 +80,21 @@ func (s *HadeeStoreProvider) GetParams(ctx context.Context, in *store.ParamsRequ
 func main() {
 
 	if len(os.Args) != 3 {
-		log.Fatal("error: usage: hadee_server user table.pub")
+		log.Fatal("error: usage: hadee_server user store.pub")
 	}
-
 	user := os.Args[1]
-
 	tableString, err := ioutil.ReadFile(os.Args[2])
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	table := new(store.StoreTable)
 	if err = proto.Unmarshal(tableString, table); err != nil {
 		log.Fatal("failed to parse protobuf: ", err)
 	}
 
+	// Begin serving.
 	storeProvider := NewHadeeStoreProvider(user, table)
 	defer storeProvider.CleanUp()
-
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -99,7 +102,6 @@ func main() {
 	log.Println("Opened TCP socket on", port)
 	s := grpc.NewServer()
 	store.RegisterStoreProviderServer(s, storeProvider)
-	// Register reflection service on gRPC server.
 	reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

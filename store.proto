@@ -29,8 +29,8 @@ enum StoreProviderError {
 }
 
 // Definition for the storage provider storage. The StoreProvider stores a map
-// from user IDs to their PubStore. This service permits the client to get the
-// parameters with the PubStore and to request shares.
+// from user IDs to his/her public store. This service permits the client to get
+// the parameters with the PubStore and to request shares.
 service StoreProvider {
   rpc GetShare (ShareRequest) returns (ShareReply) {}
   rpc GetParams (ParamsRequest) returns (ParamsReply) {}
