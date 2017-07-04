@@ -2,6 +2,11 @@
 // All rights reserved.
 package store
 
+// TODO Use uncompressed instead of compressed dictionary.
+// 1. NewPubStoreFromTable: Set pub.dict2.
+// 2. Change Get and GetRows to look up in dict2.
+// 3. Move pub.dict2 to pub.dict.
+
 import (
 	"crypto/rand"
 	"crypto/sha256"
@@ -99,7 +104,8 @@ func CError(fn string, errNo C.int) Error {
 
 // The public representation of the map.
 type PubStore struct {
-	dict *C.cdict_t
+	dict  *C.cdict_t
+	dict2 *C.dict_t
 }
 
 // The private state required for evaluation queries.
@@ -164,17 +170,16 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Allocate a new dictionary object.
 	tableLen := C.dict_compute_table_length(C.int(len(M)))
-	dict := C.dict_new(
+	pub.dict2 = C.dict_new(
 		tableLen,
 		C.int(maxOutputueBytes),
 		C.int(TagBytes),
 		C.int(SaltBytes))
-	if dict == nil {
+	if pub.dict2 == nil {
 		return nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
 	}
-	defer C.dict_free(dict)
 
-	params := cParamsToStoreParams(&dict.params)
+	params := cParamsToStoreParams(&pub.dict2.params)
 
 	// Create priv.
 	//
@@ -187,7 +192,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Create the dictionary.
 	errNo := C.dict_create(
-		dict, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
+		pub.dict2, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
 	if errNo != C.OK {
 		priv.Free()
 		return nil, nil, CError("dict_create", errNo)
@@ -195,11 +200,11 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Copy salt to priv.params.
 	C.memcpy(unsafe.Pointer(priv.params.salt),
-		unsafe.Pointer(dict.params.salt),
+		unsafe.Pointer(pub.dict2.params.salt),
 		C.size_t(priv.params.salt_bytes))
 
 	// Create compressed representation (no 0 rows).
-	pub.dict = C.dict_compress(dict)
+	pub.dict = C.dict_compress(pub.dict2)
 
 	return pub, priv, nil
 }
@@ -210,6 +215,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 func NewPubStoreFromTable(table *StoreTable) *PubStore {
 	pub := new(PubStore)
 	pub.dict = (*C.cdict_t)(C.malloc(C.sizeof_cdict_t))
+	pub.dict2 = nil // FIXME
 
 	// Allocate memory for salt + 1 tweak byte and set the parameters.
 	pub.dict.params.salt = (*C.char)(C.malloc(C.size_t(len(table.GetParams().Salt) + 1)))
@@ -295,6 +301,9 @@ func (pub *PubStore) GetTable() *StoreTable {
 // the data structure.
 func (pub *PubStore) Free() {
 	C.cdict_free(pub.dict)
+	if pub.dict2 != nil {
+		C.dict_free(pub.dict2)
+	}
 }
 
 // NewPrivStore creates a new *PrivStore from a key and parameters.
