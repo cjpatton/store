@@ -10,8 +10,10 @@ It is generated from these files:
 It has these top-level messages:
 	StoreParams
 	StoreTable
-	HelloRequest
-	HelloReply
+	ShareRequest
+	ShareReply
+	ParamsRequest
+	ParamsReply
 */
 package store
 
@@ -34,6 +36,30 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
+type StoreProviderError int32
+
+const (
+	StoreProviderError_OK       StoreProviderError = 0
+	StoreProviderError_BAD_USER StoreProviderError = 1
+	StoreProviderError_INDEX    StoreProviderError = 2
+)
+
+var StoreProviderError_name = map[int32]string{
+	0: "OK",
+	1: "BAD_USER",
+	2: "INDEX",
+}
+var StoreProviderError_value = map[string]int32{
+	"OK":       0,
+	"BAD_USER": 1,
+	"INDEX":    2,
+}
+
+func (x StoreProviderError) String() string {
+	return proto.EnumName(StoreProviderError_name, int32(x))
+}
+func (StoreProviderError) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 type StoreParams struct {
 	TableLen       int32  `protobuf:"varint,1,opt,name=table_len,json=tableLen" json:"table_len,omitempty"`
@@ -123,45 +149,114 @@ func (m *StoreTable) GetIdx() []int32 {
 	return nil
 }
 
-// The request message containing the user's name.
-type HelloRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+// The share request message.
+type ShareRequest struct {
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	X      int32  `protobuf:"varint,2,opt,name=x" json:"x,omitempty"`
+	Y      int32  `protobuf:"varint,3,opt,name=y" json:"y,omitempty"`
 }
 
-func (m *HelloRequest) Reset()                    { *m = HelloRequest{} }
-func (m *HelloRequest) String() string            { return proto.CompactTextString(m) }
-func (*HelloRequest) ProtoMessage()               {}
-func (*HelloRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (m *ShareRequest) Reset()                    { *m = ShareRequest{} }
+func (m *ShareRequest) String() string            { return proto.CompactTextString(m) }
+func (*ShareRequest) ProtoMessage()               {}
+func (*ShareRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
-func (m *HelloRequest) GetName() string {
+func (m *ShareRequest) GetUserId() string {
 	if m != nil {
-		return m.Name
+		return m.UserId
 	}
 	return ""
 }
 
-// The response message containing the greetings
-type HelloReply struct {
-	Message string `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+func (m *ShareRequest) GetX() int32 {
+	if m != nil {
+		return m.X
+	}
+	return 0
 }
 
-func (m *HelloReply) Reset()                    { *m = HelloReply{} }
-func (m *HelloReply) String() string            { return proto.CompactTextString(m) }
-func (*HelloReply) ProtoMessage()               {}
-func (*HelloReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
-
-func (m *HelloReply) GetMessage() string {
+func (m *ShareRequest) GetY() int32 {
 	if m != nil {
-		return m.Message
+		return m.Y
+	}
+	return 0
+}
+
+// The share response message.
+type ShareReply struct {
+	PubShare []byte             `protobuf:"bytes,1,opt,name=pub_share,json=pubShare,proto3" json:"pub_share,omitempty"`
+	Error    StoreProviderError `protobuf:"varint,2,opt,name=error,enum=store.StoreProviderError" json:"error,omitempty"`
+}
+
+func (m *ShareReply) Reset()                    { *m = ShareReply{} }
+func (m *ShareReply) String() string            { return proto.CompactTextString(m) }
+func (*ShareReply) ProtoMessage()               {}
+func (*ShareReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *ShareReply) GetPubShare() []byte {
+	if m != nil {
+		return m.PubShare
+	}
+	return nil
+}
+
+func (m *ShareReply) GetError() StoreProviderError {
+	if m != nil {
+		return m.Error
+	}
+	return StoreProviderError_OK
+}
+
+// The parameters request message.
+type ParamsRequest struct {
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+}
+
+func (m *ParamsRequest) Reset()                    { *m = ParamsRequest{} }
+func (m *ParamsRequest) String() string            { return proto.CompactTextString(m) }
+func (*ParamsRequest) ProtoMessage()               {}
+func (*ParamsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *ParamsRequest) GetUserId() string {
+	if m != nil {
+		return m.UserId
 	}
 	return ""
+}
+
+// The parameters response message.
+type ParamsReply struct {
+	Params *StoreParams       `protobuf:"bytes,1,opt,name=params" json:"params,omitempty"`
+	Error  StoreProviderError `protobuf:"varint,2,opt,name=error,enum=store.StoreProviderError" json:"error,omitempty"`
+}
+
+func (m *ParamsReply) Reset()                    { *m = ParamsReply{} }
+func (m *ParamsReply) String() string            { return proto.CompactTextString(m) }
+func (*ParamsReply) ProtoMessage()               {}
+func (*ParamsReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *ParamsReply) GetParams() *StoreParams {
+	if m != nil {
+		return m.Params
+	}
+	return nil
+}
+
+func (m *ParamsReply) GetError() StoreProviderError {
+	if m != nil {
+		return m.Error
+	}
+	return StoreProviderError_OK
 }
 
 func init() {
 	proto.RegisterType((*StoreParams)(nil), "store.StoreParams")
 	proto.RegisterType((*StoreTable)(nil), "store.StoreTable")
-	proto.RegisterType((*HelloRequest)(nil), "store.HelloRequest")
-	proto.RegisterType((*HelloReply)(nil), "store.HelloReply")
+	proto.RegisterType((*ShareRequest)(nil), "store.ShareRequest")
+	proto.RegisterType((*ShareReply)(nil), "store.ShareReply")
+	proto.RegisterType((*ParamsRequest)(nil), "store.ParamsRequest")
+	proto.RegisterType((*ParamsReply)(nil), "store.ParamsReply")
+	proto.RegisterEnum("store.StoreProviderError", StoreProviderError_name, StoreProviderError_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -172,66 +267,97 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for Greeter service
+// Client API for StoreProvider service
 
-type GreeterClient interface {
-	// Sends a greeting
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+type StoreProviderClient interface {
+	GetShare(ctx context.Context, in *ShareRequest, opts ...grpc.CallOption) (*ShareReply, error)
+	GetParams(ctx context.Context, in *ParamsRequest, opts ...grpc.CallOption) (*ParamsReply, error)
 }
 
-type greeterClient struct {
+type storeProviderClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewGreeterClient(cc *grpc.ClientConn) GreeterClient {
-	return &greeterClient{cc}
+func NewStoreProviderClient(cc *grpc.ClientConn) StoreProviderClient {
+	return &storeProviderClient{cc}
 }
 
-func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
-	out := new(HelloReply)
-	err := grpc.Invoke(ctx, "/store.Greeter/SayHello", in, out, c.cc, opts...)
+func (c *storeProviderClient) GetShare(ctx context.Context, in *ShareRequest, opts ...grpc.CallOption) (*ShareReply, error) {
+	out := new(ShareReply)
+	err := grpc.Invoke(ctx, "/store.StoreProvider/GetShare", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Greeter service
-
-type GreeterServer interface {
-	// Sends a greeting
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+func (c *storeProviderClient) GetParams(ctx context.Context, in *ParamsRequest, opts ...grpc.CallOption) (*ParamsReply, error) {
+	out := new(ParamsReply)
+	err := grpc.Invoke(ctx, "/store.StoreProvider/GetParams", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-func RegisterGreeterServer(s *grpc.Server, srv GreeterServer) {
-	s.RegisterService(&_Greeter_serviceDesc, srv)
+// Server API for StoreProvider service
+
+type StoreProviderServer interface {
+	GetShare(context.Context, *ShareRequest) (*ShareReply, error)
+	GetParams(context.Context, *ParamsRequest) (*ParamsReply, error)
 }
 
-func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
+func RegisterStoreProviderServer(s *grpc.Server, srv StoreProviderServer) {
+	s.RegisterService(&_StoreProvider_serviceDesc, srv)
+}
+
+func _StoreProvider_GetShare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShareRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GreeterServer).SayHello(ctx, in)
+		return srv.(StoreProviderServer).GetShare(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/store.Greeter/SayHello",
+		FullMethod: "/store.StoreProvider/GetShare",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GreeterServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(StoreProviderServer).GetShare(ctx, req.(*ShareRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Greeter_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "store.Greeter",
-	HandlerType: (*GreeterServer)(nil),
+func _StoreProvider_GetParams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ParamsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreProviderServer).GetParams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/store.StoreProvider/GetParams",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreProviderServer).GetParams(ctx, req.(*ParamsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _StoreProvider_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "store.StoreProvider",
+	HandlerType: (*StoreProviderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SayHello",
-			Handler:    _Greeter_SayHello_Handler,
+			MethodName: "GetShare",
+			Handler:    _StoreProvider_GetShare_Handler,
+		},
+		{
+			MethodName: "GetParams",
+			Handler:    _StoreProvider_GetParams_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -241,24 +367,32 @@ var _Greeter_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("store.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 298 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x51, 0x4d, 0x4b, 0xf4, 0x30,
-	0x10, 0x7e, 0xfb, 0x76, 0xbb, 0x1f, 0xb3, 0x45, 0xd6, 0xe8, 0xa1, 0x28, 0x42, 0xc9, 0x41, 0x8a,
-	0x87, 0x3d, 0xac, 0xde, 0x05, 0x2f, 0x7a, 0x10, 0x94, 0xac, 0xf7, 0x9a, 0xe2, 0x50, 0x84, 0xb4,
-	0xa9, 0x49, 0xca, 0xb6, 0x3f, 0xcf, 0x7f, 0x26, 0x99, 0xb6, 0xb2, 0xde, 0xe6, 0xf9, 0xc8, 0xcc,
-	0xf3, 0x10, 0x58, 0x5b, 0xa7, 0x0d, 0x6e, 0x1b, 0xa3, 0x9d, 0x66, 0x11, 0x01, 0xfe, 0x1d, 0xc0,
-	0x7a, 0xef, 0xa7, 0x57, 0x69, 0x64, 0x65, 0xd9, 0x25, 0xac, 0x9c, 0x2c, 0x14, 0xe6, 0x0a, 0xeb,
-	0x24, 0x48, 0x83, 0x2c, 0x12, 0x4b, 0x22, 0x9e, 0xb1, 0x66, 0x19, 0x6c, 0x2a, 0xd9, 0xe5, 0xba,
-	0x75, 0x4d, 0xeb, 0xf2, 0xa2, 0x77, 0x68, 0x93, 0xff, 0xe4, 0x39, 0xa9, 0x64, 0xf7, 0x42, 0xf4,
-	0x83, 0x67, 0xfd, 0x1a, 0xa3, 0x0f, 0xa3, 0x25, 0x1c, 0xd6, 0x18, 0x7d, 0xf8, 0x15, 0x9d, 0x2c,
-	0x47, 0x71, 0x36, 0xdd, 0x28, 0x07, 0xf1, 0x0a, 0xc0, 0x4a, 0x35, 0x6d, 0x8f, 0x48, 0x5d, 0x79,
-	0x66, 0x90, 0x19, 0xcc, 0x3c, 0x48, 0xe6, 0x69, 0x90, 0xc5, 0x82, 0x66, 0xfe, 0x0e, 0x40, 0x15,
-	0xde, 0x7c, 0x4e, 0x76, 0x03, 0xf3, 0x86, 0xba, 0x50, 0xfc, 0xf5, 0x8e, 0x6d, 0x87, 0xda, 0x47,
-	0x2d, 0xc5, 0xe8, 0x60, 0xe7, 0x10, 0x51, 0x39, 0x6a, 0x11, 0x8b, 0x01, 0xb0, 0x0d, 0x84, 0x9f,
-	0x1f, 0x5d, 0x12, 0xa6, 0x61, 0x16, 0x09, 0x3f, 0x72, 0x0e, 0xf1, 0x13, 0x2a, 0xa5, 0x05, 0x7e,
-	0xb5, 0x68, 0x9d, 0x4f, 0x51, 0xcb, 0x0a, 0xe9, 0xc2, 0x4a, 0xd0, 0xcc, 0xaf, 0x01, 0x46, 0x4f,
-	0xa3, 0x7a, 0x96, 0xc0, 0xa2, 0x42, 0x6b, 0x65, 0x39, 0x99, 0x26, 0xb8, 0xbb, 0x87, 0xc5, 0xa3,
-	0x41, 0x74, 0x68, 0xd8, 0x1d, 0x2c, 0xf7, 0xb2, 0xa7, 0x57, 0xec, 0x6c, 0x8c, 0x79, 0x7c, 0xe7,
-	0xe2, 0xf4, 0x2f, 0xd9, 0xa8, 0x9e, 0xff, 0x2b, 0xe6, 0xf4, 0x81, 0xb7, 0x3f, 0x01, 0x00, 0x00,
-	0xff, 0xff, 0xb8, 0x30, 0x31, 0xdd, 0xcf, 0x01, 0x00, 0x00,
+	// 426 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0xc1, 0x6e, 0xd3, 0x40,
+	0x10, 0xed, 0x26, 0xb5, 0x89, 0x27, 0x6e, 0x65, 0x86, 0x4a, 0x98, 0x22, 0xa4, 0xc8, 0x27, 0xab,
+	0x87, 0x22, 0x05, 0x10, 0x67, 0x4a, 0xa3, 0xaa, 0x02, 0x51, 0xb4, 0x01, 0x09, 0x71, 0x31, 0x6b,
+	0x79, 0x55, 0x82, 0x9c, 0xae, 0x59, 0xaf, 0xa9, 0x7d, 0xe1, 0xdf, 0xf8, 0x33, 0xb4, 0xe3, 0x35,
+	0xaa, 0xe1, 0x80, 0x72, 0x9b, 0x79, 0xef, 0xed, 0x9b, 0x79, 0x93, 0x18, 0xe6, 0xb5, 0x51, 0x5a,
+	0x9e, 0x56, 0x5a, 0x19, 0x85, 0x1e, 0x35, 0xc9, 0x2f, 0x06, 0xf3, 0xb5, 0xad, 0xde, 0x0b, 0x2d,
+	0xb6, 0x35, 0x3e, 0x86, 0xc0, 0x88, 0xbc, 0x94, 0x59, 0x29, 0x6f, 0x62, 0xb6, 0x60, 0xa9, 0xc7,
+	0x67, 0x04, 0xbc, 0x95, 0x37, 0x98, 0x42, 0xb4, 0x15, 0x6d, 0xa6, 0x1a, 0x53, 0x35, 0x26, 0xcb,
+	0x3b, 0x23, 0xeb, 0x78, 0x42, 0x9a, 0xc3, 0xad, 0x68, 0xaf, 0x08, 0x3e, 0xb3, 0xa8, 0xb5, 0xd1,
+	0xea, 0xd6, 0x49, 0xa6, 0xbd, 0x8d, 0x56, 0xb7, 0x7f, 0x48, 0x23, 0xae, 0x1d, 0xb9, 0x3f, 0xcc,
+	0xb8, 0xee, 0xc9, 0x27, 0x00, 0xb5, 0x28, 0x07, 0x77, 0x8f, 0xd8, 0xc0, 0x22, 0x3d, 0x8d, 0xb0,
+	0x6f, 0x9b, 0xd8, 0x5f, 0xb0, 0x34, 0xe4, 0x54, 0x27, 0x5f, 0x00, 0x28, 0xc2, 0x07, 0xbb, 0x27,
+	0x9e, 0x80, 0x5f, 0x51, 0x16, 0x5a, 0x7f, 0xbe, 0xc4, 0xd3, 0x3e, 0xf6, 0x9d, 0x94, 0xdc, 0x29,
+	0xf0, 0x08, 0x3c, 0x0a, 0x47, 0x29, 0x42, 0xde, 0x37, 0x18, 0xc1, 0x74, 0x53, 0xb4, 0xf1, 0x74,
+	0x31, 0x4d, 0x3d, 0x6e, 0xcb, 0xe4, 0x35, 0x84, 0xeb, 0xaf, 0x42, 0x4b, 0x2e, 0xbf, 0x37, 0xb2,
+	0x36, 0xf8, 0x10, 0xee, 0x35, 0xb5, 0xd4, 0xd9, 0xa6, 0xa0, 0x21, 0x01, 0xf7, 0x6d, 0x7b, 0x59,
+	0x60, 0x08, 0xac, 0x75, 0x27, 0x61, 0xad, 0xed, 0x3a, 0x97, 0x9e, 0x75, 0xc9, 0x67, 0x00, 0x67,
+	0x52, 0x95, 0x9d, 0x3d, 0x42, 0xd5, 0xe4, 0x59, 0x6d, 0x11, 0x32, 0x09, 0xf9, 0xac, 0x6a, 0x72,
+	0x52, 0xe0, 0x53, 0xf0, 0xa4, 0xd6, 0x4a, 0x93, 0xd5, 0xe1, 0xf2, 0xd1, 0x28, 0x82, 0x56, 0x3f,
+	0x36, 0x85, 0xd4, 0x2b, 0x2b, 0xe0, 0xbd, 0x2e, 0x49, 0xe1, 0xc0, 0x45, 0xfb, 0xcf, 0x86, 0xc9,
+	0x37, 0x98, 0x0f, 0x4a, 0xbb, 0xc6, 0x2e, 0xd7, 0xda, 0x75, 0xab, 0x93, 0x17, 0x80, 0xff, 0x92,
+	0xe8, 0xc3, 0xe4, 0xea, 0x4d, 0xb4, 0x87, 0x21, 0xcc, 0xce, 0x5e, 0x9d, 0x67, 0x1f, 0xd7, 0x2b,
+	0x1e, 0x31, 0x0c, 0xc0, 0xbb, 0x7c, 0x77, 0xbe, 0xfa, 0x14, 0x4d, 0x96, 0x3f, 0xe1, 0x60, 0xf4,
+	0x0c, 0x9f, 0xc3, 0xec, 0x42, 0x9a, 0xfe, 0x34, 0x0f, 0x86, 0xa9, 0x77, 0x7e, 0x8f, 0xe3, 0xfb,
+	0x63, 0xb0, 0x2a, 0xbb, 0x64, 0x0f, 0x5f, 0x42, 0x70, 0x21, 0x8d, 0xfb, 0x5f, 0x1f, 0x39, 0xc5,
+	0xe8, 0x4a, 0xc7, 0xf8, 0x17, 0x4a, 0x0f, 0x73, 0x9f, 0xbe, 0x90, 0x67, 0xbf, 0x03, 0x00, 0x00,
+	0xff, 0xff, 0xb5, 0xa0, 0x78, 0x37, 0x30, 0x03, 0x00, 0x00,
 }

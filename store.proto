@@ -1,4 +1,5 @@
-
+// Copyright (c) 2017, Christopher Patton.
+// All rights reserved.
 syntax = "proto3";
 
 package store;
@@ -18,18 +19,39 @@ message StoreTable {
   repeated int32 idx = 3;
 }
 
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+enum StoreProviderError {
+  OK = 0;
+  BAD_USER = 1;
+  INDEX = 2;
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+// Definition for the storage provider storage.
+service StoreProvider {
+  rpc GetShare (ShareRequest) returns (ShareReply) {}
+  rpc GetParams (ParamsRequest) returns (ParamsReply) {}
 }
 
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
+
+// The share request message.
+message ShareRequest {
+  string user_id = 1;
+  int32 x = 2;
+  int32 y = 3;
+}
+
+// The share response message.
+message ShareReply {
+  bytes pub_share = 1;
+  StoreProviderError error = 2;
+}
+
+// The parameters request message.
+message ParamsRequest {
+  string user_id = 1;
+}
+
+// The parameters response message.
+message ParamsReply {
+  StoreParams params = 1;
+  StoreProviderError error = 2;
 }
