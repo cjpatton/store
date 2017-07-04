@@ -4,7 +4,7 @@ TODO(cjpatton) Describe what's going on at a high level.
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY
 DISCLAIMER:** This code is related to a research paper currently in submission.
-The underlying cryptographic scheme still needs a proof.
+The underlying cryptographic mechanism still needs a formal proof.
 
 Package `store`
 ---------------
