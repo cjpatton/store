@@ -44,28 +44,6 @@ documentation for details.
 Installation
 ------------
 
-The core data structures are implemented in C. (See `c/`.) These are compiled
-into a share object for which the Go code has bindings. They depend on OpenSSL,
-so you'll need to install this library in advance. On Ubuntu:
-
-```$ sudo apt-get install libssl-dev```
-
-On Mac:
-
-```$ brew install openssl```
-
-To build the C code and run tests, go to `c/` and do
-
-```$ make && make test```
-
-Note that the tests will produce warnings from time to time. (This is OK as long
-ast it doesn't produce **a lot** of warnings.) To install, do
-
-```$ sudo make install && sudo ldconfig```
-
-This builds a file called `libstruct.so` and moves it to `/usr/local/lib` and
-copies the header files to `/usr/local/include/struct`.
-
 Finally, you'll need Go. To get the latest version on Ubuntu, do
 
 ```
@@ -74,7 +52,49 @@ $ sudo apt-get update
 $ sudo apt-get install golang-go
 ```
 
-On Mac, download the [pkg](https://golang.org/dl/) and install it.
+On Mac, download the [pkg](https://golang.org/dl/) and install it. Add the
+following lines to the end of`.bashrc` on Ubuntu or `.bash_profile` on Mac:
+
+```
+export GOPATH="$HOME/go"
+export PATH="$PATH:$GOPATH/bin"
+```
+
+In a new terminal, make the directory `$HOME/go`, go to the directory and type:
+```
+go get github.com/cjpatton/store
+```
+This downloads this repository and puts it in
+`go/src/github.com/cjpatton/store`.
+
+Next, the core data structures are implemented in C. (Naviagte to
+`go/src/github.com/cjpatton/store/c/`.) These are compiled into a shared object
+for which the Go code has bindings. They depend on OpenSSL, so you'll need to
+install this library in advance. On Ubuntu:
+```
+$ sudo apt-get install libssl-dev
+```
+On Mac via Homebrew:
+```
+$ brew install openssl
+```
+(Homebrew puts the includes in `/usr/local/opt/openssl/include`, which is a
+non-standard location. Note that `c/Makefile` passes this directory to the
+compioler via `-I`, so this shouldn't be a problem.) To build the C code and run
+tests do:
+```
+$ make && make test
+```
+Note that, since the data strucutres are probabilistic, the tests will produce
+warnings from time to time. (This is OK as long ast it doesn't produce **a lot**
+of warnings.) To install, do
+
+```$ sudo make install && sudo ldconfig```
+
+This builds a file called `libstruct.so` and moves it to `/usr/local/lib` and
+copies the header files to `/usr/local/include/struct`.
+
+TODO(me) Instructions on running the sample application.
 
 
 Building `store.pb.go`
@@ -84,16 +104,16 @@ Building `store.pb.go`
 protcool buffers and remote procedure calls. To build you'll first need the
 lastest version of `protoc'. Go to [the gRPC
 documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
-for instructions. To build, run
-
+for instructions. To build `store.pb.go`, go to
+`$HOME/go/src/github.com/cjpatton/store/` and run
 ```
   $ protoc -I . store.proto --go_out=plugins=grpc:.
 ```
+Note that you only need to this if you modify `store.proto`.
 
-in the root project directory.
 
-Note Copyright
----------
+Copyright notice
+----------------
 
 This software is distributed under the terms of the 3-Clause BSD License; see
 `LICENSE` in the root project directory for details.
