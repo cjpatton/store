@@ -98,11 +98,11 @@ Running the toy application
 TODO(me) Instructions on running the sample application.
 
 
-Building `store.pb.go`
+Modifying `store.proto`
 ----------------------
-**You only need to do this if you want to modify the code.** This project uses
-protcool buffers and remote procedure calls. To build you'll first need the
-lastest version of `protoc`. Go to [the gRPC
+**You only need to do this if you want to modify the protocol buffers or RPC.**
+This project uses protcool buffers and remote procedure calls. To build you'll
+first need the lastest version of `protoc`. Go to [the gRPC
 documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
 for instructions. To build `store.pb.go`, go to
 `$HOME/go/src/github.com/cjpatton/store/` and run
