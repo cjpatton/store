@@ -20,18 +20,20 @@ To compute M[input], the client executes:
 and sends x and y to the server. These are integers corresponding to rows in
 a table (of type [][]byte) encoded by pub. The server executes:
 
-		xRow, err := pub.GetRow(x)
+		pubShare, err := pub.GetShare(x, y)
 
-and sends xRow (of type []byte) to the client. (Similarly for y.)
-Finally, the client executes:
+and sends pubShare (of type []byte) to the client. (This is the XOR of the two
+rows requested by the client.)) Finally, the client executes:
 
-		output, err := priv.GetValue(input, [][]byte{xRow, yRow})
+		output, err := priv.GetValue(input, pubShare)
 
-Then M[input] = output.  Note that the server is not entrusted with the key;
-its only job is to look up the rows of the table requested by the client. The
-data structure is designed so that no information about input or output is
-leaked to any party not in possession of the secret key.  For convenience, we
-also provide a means for the client to query the structure directly:
+This combines `pubShare` with the private share computed from `input` and the
+key. The result is output = M[input]. Note that the server is not entrusted with
+the key; its only job is to look up the rows of the table requested by the
+client. The data structure is designed so that no information about input or
+output is leaked to any party not in possession of the secret key. For
+convenience, we also provide a means for the client to query the structure
+directly:
 
 		output, err := store.Get(pub, priv, input)
 
