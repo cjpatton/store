@@ -5,7 +5,6 @@ A super light-weight password manager for paranoid people who like Go.
 
 Package `store`
 ---------------
-
 Package store provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
@@ -44,15 +43,15 @@ documentation for details.
 Installation
 ------------
 
-Finally, you'll need Go. To get the latest version on Ubuntu, do
+First, you'll need Go. To get the latest version on Ubuntu, do
 
 ```
 $ sudo add-apt-repository ppa:longsleep/golang-backports
-$ sudo apt-get update
-$ sudo apt-get install golang-go
+$ sudo apt update
+$ sudo apt install golang-go
 ```
 
-On Mac, download the [pkg](https://golang.org/dl/) and install it. Add the
+On Mac, download the [pkg](https://golang.org/dl/) and install it. Next, add the
 following lines to the end of`.bashrc` on Ubuntu or `.bash_profile` on Mac:
 
 ```
@@ -68,7 +67,7 @@ This downloads this repository and puts it in
 `go/src/github.com/cjpatton/store`.
 
 Next, the core data structures are implemented in C. (Naviagte to
-`go/src/github.com/cjpatton/store/c/`.) These are compiled into a shared object
+`go/src/github.com/cjpatton/store/c/`.)  The `Makefile` compiles a shared object
 for which the Go code has bindings. They depend on OpenSSL, so you'll need to
 install this library in advance. On Ubuntu:
 ```
@@ -79,30 +78,31 @@ On Mac via Homebrew:
 $ brew install openssl
 ```
 (Homebrew puts the includes in `/usr/local/opt/openssl/include`, which is a
-non-standard location. Note that `c/Makefile` passes this directory to the
-compioler via `-I`, so this shouldn't be a problem.) To build the C code and run
-tests do:
+non-standard location. `Makefile` passes this directory to the compioler via
+`-I`, so this shouldn't be a problem.) To build the C code and run tests do:
 ```
 $ make && make test
 ```
 Note that, since the data strucutres are probabilistic, the tests will produce
 warnings from time to time. (This is OK as long ast it doesn't produce **a lot**
 of warnings.) To install, do
-
-```$ sudo make install && sudo ldconfig```
+```
+$ sudo make install && sudo ldconfig
+```
 
 This builds a file called `libstruct.so` and moves it to `/usr/local/lib` and
 copies the header files to `/usr/local/include/struct`.
 
+Running the toy application
+---------------------------
 TODO(me) Instructions on running the sample application.
 
 
 Building `store.pb.go`
 ----------------------
-
 **You only need to do this if you want to modify the code.** This project uses
 protcool buffers and remote procedure calls. To build you'll first need the
-lastest version of `protoc'. Go to [the gRPC
+lastest version of `protoc`. Go to [the gRPC
 documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
 for instructions. To build `store.pb.go`, go to
 `$HOME/go/src/github.com/cjpatton/store/` and run
@@ -114,6 +114,5 @@ Note that you only need to this if you modify `store.proto`.
 
 Copyright notice
 ----------------
-
 This software is distributed under the terms of the 3-Clause BSD License; see
 `LICENSE` in the root project directory for details.
