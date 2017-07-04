@@ -155,7 +155,7 @@ for instructions. To build `store.pb.go`, go to
 ```
   $ protoc -I . store.proto --go_out=plugins=grpc:.
 ```
-Note that you only need to this if you modify `store.proto`.
+Note that you only need to do this if you modify `store.proto`.
 
 
 Copyright notice
