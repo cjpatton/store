@@ -2,6 +2,8 @@
 // All rights reserved.
 package store
 
+// TODO(me) Rename GetRow.
+
 import (
 	"crypto/rand"
 	"crypto/sha256"
@@ -104,8 +106,9 @@ type PubStore struct {
 
 // The private state required for evaluation queries.
 type PrivStore struct {
-	tinyCtx *C.tiny_ctx
-	params  C.dict_params_t
+	tinyCtx    *C.tiny_ctx
+	params     C.dict_params_t
+	cZeroShare *C.char
 }
 
 // GenerateKey generates a fresh, random key and returns it.
@@ -248,12 +251,18 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	return C.GoStringN(cOutput, cOutputBytes), nil
 }
 
-// GetRow returns the row of the table associated with idx.
-func (pub *PubStore) GetRow(idx int) ([]byte, error) {
-	if idx < 0 || idx >= int(pub.dict.params.table_length) {
+// GetShare returns the bitwise-XOR of the x-th and y-th rows of the table.
+func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
+	if x < 0 || x >= int(pub.dict.params.table_length) ||
+		y < 0 || y >= int(pub.dict.params.table_length) {
 		return nil, ErrorIdx
 	}
-	return getRow(pub.dict.table, C.int(idx), pub.dict.params.row_bytes), nil
+	xRow := getRow(pub.dict.table, C.int(x), pub.dict.params.row_bytes)
+	yRow := getRow(pub.dict.table, C.int(y), pub.dict.params.row_bytes)
+	for i := 0; i < len(xRow); i++ {
+		xRow[i] ^= yRow[i]
+	}
+	return xRow, nil
 }
 
 // ToString returns a string representation of the table.
@@ -317,6 +326,11 @@ func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
 
 	// Set parameters.
 	setCParamsFromStoreParams(&priv.params, params)
+
+	// A 0-byte string used by GetValue().
+	priv.cZeroShare = (*C.char)(C.malloc(C.size_t(priv.params.row_bytes)))
+	C.memset(unsafe.Pointer(priv.cZeroShare), 0, C.size_t(priv.params.row_bytes))
+
 	return priv, nil
 }
 
@@ -335,7 +349,7 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 }
 
 // GetValue computes the output associated with the input and the table rows.
-func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
+func (priv *PrivStore) GetValue(input string, pubShare []byte) (string, error) {
 	cInput := C.CString(input)
 	// NOTE(me) Better way to do the following?
 	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
@@ -343,13 +357,11 @@ func (priv *PrivStore) GetValue(input string, rows [][]byte) (string, error) {
 	defer C.free(unsafe.Pointer(cOutput))
 	cOutputBytes := C.int(0)
 
-	xRow := C.CString(string(rows[0]))
-	yRow := C.CString(string(rows[1]))
-	defer C.free(unsafe.Pointer(xRow))
-	defer C.free(unsafe.Pointer(yRow))
+	cPubShare := C.CString(string(pubShare))
+	defer C.free(unsafe.Pointer(cPubShare))
 
 	errNo := C.dict_compute_value(priv.params, priv.tinyCtx, cInput,
-		C.int(len(input)), xRow, yRow, cOutput, &cOutputBytes)
+		C.int(len(input)), cPubShare, priv.cZeroShare, cOutput, &cOutputBytes)
 
 	if errNo == C.ERR_DICT_BAD_KEY {
 		return "", ItemNotFound
@@ -368,6 +380,7 @@ func (priv *PrivStore) GetParams() *StoreParams {
 // underlying data structure.
 func (priv *PrivStore) Free() {
 	C.free(unsafe.Pointer(priv.params.salt))
+	C.free(unsafe.Pointer(priv.cZeroShare))
 	C.tinyprf_free(priv.tinyCtx)
 }
 

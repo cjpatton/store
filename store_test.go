@@ -156,8 +156,8 @@ func TestGet(t *testing.T) {
 	}
 }
 
-// Test priv.GetIdx, pub.GetRows, and priv.GetValue().
-func TestGetIdxRowsValue(t *testing.T) {
+// Test priv.GetIdx, pub.GetShare, and priv.GetValue().
+func TestGetIdxRowValue(t *testing.T) {
 	pub, priv, err := New(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("New() fails: %s", err)
@@ -170,19 +170,14 @@ func TestGetIdxRowsValue(t *testing.T) {
 		if err != nil {
 			t.Errorf("priv.GetIdx(%q) fails: %s", in, err)
 		}
-		X, err := pub.GetRow(x)
+		pubShare, err := pub.GetShare(x, y)
 		if err != nil {
-			t.Errorf("pub.GetRow(%d) fails: %s", x, err)
+			t.Errorf("pub.GetShare(%d, %d) fails: %s", x, y, err)
 		}
-		Y, err := pub.GetRow(y)
-		if err != nil {
-			t.Errorf("pub.GetRow(%d) fails: %s", y, err)
-		}
-		if X != nil && Y != nil {
-			rows := [][]byte{X, Y}
-			out, err := priv.GetValue(in, rows)
+		if pubShare != nil {
+			out, err := priv.GetValue(in, pubShare)
 			if err != nil {
-				t.Errorf("priv.GetValue(%q, %q) fails: %s", in, rows, err)
+				t.Errorf("priv.GetValue(%q, %q) fails: %s", in, pubShare, err)
 			} else if out != val {
 				t.Errorf("out = %q, expected %q", out, val)
 			}
