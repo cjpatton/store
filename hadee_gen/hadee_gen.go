@@ -1,5 +1,8 @@
 // Copyright (c) 2017, Christopher Patton.
 // All rights reserved.
+//
+// hadee_gen generates a new table from a password. It outputs a file called
+// table.pub.
 package main
 
 import (

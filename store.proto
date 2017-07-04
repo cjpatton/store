@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package store;
 
+// Parameters needed by PubStore and PrivStore.
 message StoreParams {
   int32 table_len = 1;
   int32 max_output_bytes = 2;
@@ -13,24 +14,27 @@ message StoreParams {
   bytes salt = 6;
 }
 
+// Stores a compressed representation of PubStore.
 message StoreTable {
   StoreParams params = 1;
   bytes table = 2;
   repeated int32 idx = 3;
 }
 
+// Errors output by the remote procedure calls.
 enum StoreProviderError {
   OK = 0;
   BAD_USER = 1;
   INDEX = 2;
 }
 
-// Definition for the storage provider storage.
+// Definition for the storage provider storage. The StoreProvider stores a map
+// from user IDs to their PubStore. This service permits the client to get the
+// parameters with the PubStore and to request shares.
 service StoreProvider {
   rpc GetShare (ShareRequest) returns (ShareReply) {}
   rpc GetParams (ParamsRequest) returns (ParamsReply) {}
 }
-
 
 // The share request message.
 message ShareRequest {

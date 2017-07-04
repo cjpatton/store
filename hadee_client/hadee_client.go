@@ -1,5 +1,10 @@
 // Copyright (c) 2017, Christopher Patton.
 // All rights reserved.
+//
+// hadee_client is a toy client that makes RPCs to hadee_server.
+//
+// Usage: hadee_client user
+//   user: a string
 package main
 
 import (
