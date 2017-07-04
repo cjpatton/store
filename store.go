@@ -2,11 +2,6 @@
 // All rights reserved.
 package store
 
-// TODO Use uncompressed instead of compressed dictionary.
-// 1. NewPubStoreFromTable: Set pub.dict2.
-// 2. Change Get and GetRows to look up in dict2.
-// 3. Move pub.dict2 to pub.dict.
-
 import (
 	"crypto/rand"
 	"crypto/sha256"
@@ -104,8 +99,7 @@ func CError(fn string, errNo C.int) Error {
 
 // The public representation of the map.
 type PubStore struct {
-	dict  *C.cdict_t
-	dict2 *C.dict_t
+	dict *C.dict_t
 }
 
 // The private state required for evaluation queries.
@@ -170,16 +164,16 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Allocate a new dictionary object.
 	tableLen := C.dict_compute_table_length(C.int(len(M)))
-	pub.dict2 = C.dict_new(
+	pub.dict = C.dict_new(
 		tableLen,
 		C.int(maxOutputueBytes),
 		C.int(TagBytes),
 		C.int(SaltBytes))
-	if pub.dict2 == nil {
+	if pub.dict == nil {
 		return nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
 	}
 
-	params := cParamsToStoreParams(&pub.dict2.params)
+	params := cParamsToStoreParams(&pub.dict.params)
 
 	// Create priv.
 	//
@@ -192,7 +186,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Create the dictionary.
 	errNo := C.dict_create(
-		pub.dict2, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
+		pub.dict, priv.tinyCtx, inputs, inputBytes, outputs, outputBytes, itemCt)
 	if errNo != C.OK {
 		priv.Free()
 		return nil, nil, CError("dict_create", errNo)
@@ -200,11 +194,8 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
 	// Copy salt to priv.params.
 	C.memcpy(unsafe.Pointer(priv.params.salt),
-		unsafe.Pointer(pub.dict2.params.salt),
+		unsafe.Pointer(pub.dict.params.salt),
 		C.size_t(priv.params.salt_bytes))
-
-	// Create compressed representation (no 0 rows).
-	pub.dict = C.dict_compress(pub.dict2)
 
 	return pub, priv, nil
 }
@@ -214,30 +205,24 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 // NOTE You must destrohy the output with pub.Free().
 func NewPubStoreFromTable(table *StoreTable) *PubStore {
 	pub := new(PubStore)
-	pub.dict = (*C.cdict_t)(C.malloc(C.sizeof_cdict_t))
-	pub.dict2 = nil // FIXME
+	pub.dict = (*C.dict_t)(C.malloc(C.sizeof_dict_t))
 
 	// Allocate memory for salt + 1 tweak byte and set the parameters.
 	pub.dict.params.salt = (*C.char)(C.malloc(C.size_t(len(table.GetParams().Salt) + 1)))
 	setCParamsFromStoreParams(&pub.dict.params, table.GetParams())
 
 	// Allocate memory for table + 1 zero row and copy the table.
+	tableLen := C.int(table.GetParams().GetTableLen())
 	rowBytes := C.int(table.GetParams().GetRowBytes())
 	realTableLen := C.int(len(table.Table)) / rowBytes
-	pub.dict.compressed_table_length = realTableLen
-	pub.dict.table = (*C.char)(C.malloc(C.size_t((realTableLen + 1) * rowBytes)))
 	cBuf := C.CString(string(table.Table))
 	defer C.free(unsafe.Pointer(cBuf))
-	C.memcpy(unsafe.Pointer(pub.dict.table),
-		unsafe.Pointer(cBuf),
-		C.size_t(realTableLen*rowBytes))
-	C.memset(unsafe.Pointer(C.get_row_ptr(pub.dict.table, realTableLen, rowBytes)),
-		0, C.size_t(rowBytes))
-
-	// Allocate memory for index and copy it.
-	pub.dict.idx = (*C.int)(C.malloc(C.size_t(realTableLen * C.sizeof_int)))
+	pub.dict.table = (*C.char)(C.malloc(C.size_t(tableLen * rowBytes)))
+	C.memset(unsafe.Pointer(pub.dict.table), 0, C.size_t(tableLen*rowBytes))
 	for i := 0; i < int(realTableLen); i++ {
-		C.set_int_list(pub.dict.idx, C.int(i), C.int(table.Idx[i]))
+		src := C.get_row_ptr(cBuf, C.int(i), rowBytes)
+		dst := C.get_row_ptr(pub.dict.table, C.int(table.Idx[i]), rowBytes)
+		C.memcpy(unsafe.Pointer(dst), unsafe.Pointer(src), C.size_t(rowBytes))
 	}
 
 	return pub
@@ -253,7 +238,7 @@ func Get(pub *PubStore, priv *PrivStore, input string) (string, error) {
 	cOutputBytes := C.int(0)
 	defer C.free(unsafe.Pointer(cInput))
 	defer C.free(unsafe.Pointer(cOutput))
-	errNo := C.cdict_get(
+	errNo := C.dict_get(
 		pub.dict, priv.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
 	if errNo == C.ERR_DICT_BAD_KEY {
 		return "", ItemNotFound
@@ -268,9 +253,7 @@ func (pub *PubStore) GetRow(idx int) ([]byte, error) {
 	if idx < 0 || idx >= int(pub.dict.params.table_length) {
 		return nil, ErrorIdx
 	}
-	realIdx := C.cdict_binsearch(pub.dict, C.int(idx), 0,
-		pub.dict.compressed_table_length)
-	return pub.getRealRow(realIdx), nil
+	return getRow(pub.dict.table, C.int(idx), pub.dict.params.row_bytes), nil
 }
 
 // ToString returns a string representation of the table.
@@ -280,19 +263,17 @@ func (pub *PubStore) ToString() string {
 
 // GetTable returns a *StoreTable protobuf representation of the dictionary.
 func (pub *PubStore) GetTable() *StoreTable {
+	cdict := C.dict_compress(pub.dict)
+	defer C.cdict_free(cdict)
 	rowBytes := int(pub.dict.params.row_bytes)
-	tableLen := int(pub.dict.compressed_table_length)
-	table := make([]byte, rowBytes*tableLen)
-	for i := 0; i < tableLen; i++ {
-		copy(table[i*rowBytes:(i+1)*rowBytes], pub.getRealRow(C.int(i)))
-	}
+	tableLen := int(cdict.compressed_table_length)
 	tableIdx := make([]int32, tableLen)
 	for i := 0; i < tableLen; i++ {
-		tableIdx[i] = int32(C.get_int_list(pub.dict.idx, C.int(i)))
+		tableIdx[i] = int32(C.get_int_list(cdict.idx, C.int(i)))
 	}
 	return &StoreTable{
 		Params: cParamsToStoreParams(&pub.dict.params),
-		Table:  table,
+		Table:  C.GoBytes(unsafe.Pointer(cdict.table), C.int(tableLen*rowBytes)),
 		Idx:    tableIdx,
 	}
 }
@@ -300,10 +281,7 @@ func (pub *PubStore) GetTable() *StoreTable {
 // Free deallocates memory associated with the underlying C implementation of
 // the data structure.
 func (pub *PubStore) Free() {
-	C.cdict_free(pub.dict)
-	if pub.dict2 != nil {
-		C.dict_free(pub.dict2)
-	}
+	C.dict_free(pub.dict)
 }
 
 // NewPrivStore creates a new *PrivStore from a key and parameters.
@@ -427,8 +405,8 @@ func setCParamsFromStoreParams(cParams *C.dict_params_t, params *StoreParams) {
 		C.size_t(cParams.salt_bytes))
 }
 
-// getRealRow copies a row of the table and returns it.
-func (pub *PubStore) getRealRow(idx C.int) []byte {
-	rowPtr := C.get_row_ptr(pub.dict.table, idx, pub.dict.params.row_bytes)
-	return C.GoBytes(unsafe.Pointer(rowPtr), pub.dict.params.row_bytes)
+// getRow returns a []byte corresponding to row in the table.
+func getRow(table *C.char, idx, rowBytes C.int) []byte {
+	rowPtr := C.get_row_ptr(table, idx, rowBytes)
+	return C.GoBytes(unsafe.Pointer(rowPtr), rowBytes)
 }
