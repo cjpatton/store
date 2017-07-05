@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Christopher Patton.
 // All rights reserved.
 
-// hadee_gen generates a new store from a password. It outputs a file called
+// hadee_gen generates a sample store from a password. It outputs a file called
 // store.pub.
 package main
 
