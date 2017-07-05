@@ -8,9 +8,10 @@ Implementations of (keyed) data structures and (keyed) hash functions:
 
   * `tiny.{h,c}` implements an efficient transformation of a cryptographic hash
     function (specifially SHA512) or pseudorandom function (specifically
-    HMAC-SHA512) to new a function with a tiny range. It's designed to ensure
-    that for each input _x_, the output _H(x)_ is uniform over the specified
-    range. This makes it suitable for use in data structures specified here.
+    HMAC-SHA512) to new a function _H_ with a tiny range. It's designed to
+    ensure that for each input _x_, the output _H(x)_ is uniform over the
+    specified range. This makes it suitable for use in data structures specified
+    here.
 
   * `bloom.{h,c}` implements a [Bloom
     filter](https://en.wikipedia.org/wiki/Bloom_filter), a data structure that
