@@ -1,5 +1,5 @@
-Good times with data structures
-===============================
+Secure Go maps
+==============
 - TODO(cjaetton) Describe what's going on at a high level.
 - TODO(cjpatton) Add doc tests and check in docs.
 
