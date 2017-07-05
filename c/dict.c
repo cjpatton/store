@@ -193,10 +193,10 @@ int dict_generate_graph(dict_t *dict, tiny_ctx *tiny, char **key,
   return OK;
 }
 
-// First pass of each tree of the graph: For each child y of x, let (K, V) be
-// the key/value pair associated to edge (y,x). Compute
+// First pass of each tree of the graph: For each child y of x, let (in, out) be
+// the key/value pair associated to edge (x,y). Compute
 //
-//    Z = dict->params.g(salt || 3 || K) ^ PAD(V)
+//    Z = hash(salt || 3 || in) ^ out
 //
 // and set the row associated with y be Z. Add Z into the row associated to p,
 // where p is the root of tree.
