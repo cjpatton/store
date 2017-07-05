@@ -1,13 +1,11 @@
 // Copyright (c) 2017, Christopher Patton.
 // All rights reserved.
-//
+
 // hadee_serv is a toy server implementing the StoreProvider RPC specified in
 // store.proto. It services requests for only one user, whose identity and table
 // are specified via the command line.
 //
 // Usage: hadee_serv user store.pub
-//   user: a string
-//   store.pub: a file encoding a pb.StoreTable protobuf
 package main
 
 import (
