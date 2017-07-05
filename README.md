@@ -167,7 +167,6 @@ for instructions. To build `store.pb.go`, go to
 ```
 Note that you only need to do this if you modify `store.proto`.
 
-
 Copyright notice
 ----------------
 This software is distributed under the terms of the 3-Clause BSD License; see
