@@ -52,9 +52,9 @@ client. The data structure is designed so that _no_ information about `input` or
 Note that the length of each `output` is limited to 60 bytes; see the Go
 documentation for details.
 
-The `store.StoreProvider` RPC service
+The `StoreProvider` RPC service
 -------------------------------------
-`store.proto` specifies a bare-bones [remote procedure
+`pb/store.proto` specifies a bare-bones [remote procedure
 call](http://www.grpc.io/docs/quickstart/go.html) for requesting public shares.
 The `user` computes `pub` from its map `M` and key `K` and provisions the
 service provider (out-of-band) with `pub`.  The request consists of the `user`
@@ -156,7 +156,7 @@ This project uses protcool buffers and remote procedure calls. To build you'll
 first need the lastest version of `protoc`. Go to [protobuf
 documentation](https://developers.google.com/protocol-buffers/docs/gotutorial)
 for instructions. To build `store.pb.go`, go to
-`$HOME/go/src/github.com/cjpatton/store/` and run
+`$HOME/go/src/github.com/cjpatton/store/pb` and run
 ```
   $ protoc -I . store.proto --go_out=plugins=grpc:.
 ```
