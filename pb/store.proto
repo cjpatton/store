@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package pb;
 
-// Parameters needed by PubStore and PrivStore.
+// Parameters needed by store.PubStore and store.PrivStore.
 message StoreParams {
   int32 table_len = 1;
   int32 max_output_bytes = 2;
@@ -14,7 +14,7 @@ message StoreParams {
   bytes salt = 6;
 }
 
-// Stores a compressed representation of PubStore.
+// A compressed representation of store.PubStore.
 message StoreTable {
   StoreParams params = 1;
   bytes table = 2;

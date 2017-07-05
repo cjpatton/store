@@ -62,7 +62,7 @@ func (x StoreProviderError) String() string {
 }
 func (StoreProviderError) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-// Parameters needed by PubStore and PrivStore.
+// Parameters needed by store.PubStore and store.PrivStore.
 type StoreParams struct {
 	TableLen       int32  `protobuf:"varint,1,opt,name=table_len,json=tableLen" json:"table_len,omitempty"`
 	MaxOutputBytes int32  `protobuf:"varint,2,opt,name=max_output_bytes,json=maxOutputBytes" json:"max_output_bytes,omitempty"`
@@ -119,7 +119,7 @@ func (m *StoreParams) GetSalt() []byte {
 	return nil
 }
 
-// Stores a compressed representation of PubStore.
+// A compressed representation of store.PubStore.
 type StoreTable struct {
 	Params *StoreParams `protobuf:"bytes,1,opt,name=params" json:"params,omitempty"`
 	Table  []byte       `protobuf:"bytes,2,opt,name=table,proto3" json:"table,omitempty"`

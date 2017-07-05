@@ -1,8 +1,6 @@
 Secure Go maps
 ==============
-- TODO(cjaetton) Describe what's going on at a high level.
-
-This library provides secure storage of Go's `map[string]string` objects. The
+This package provides private storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
 protocols where the service is trusted to provide storage, but is otherwise
@@ -10,6 +8,12 @@ untrusted.
 
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
+
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **WARNING:** This
+package provides _private_ storage of maps, but does not provide _integrity_.
+Said another way, there's no way to detect if the service provider has
+manipulated the contents of the map. Doing so, however, does not compromise
+privacy.
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **DISCLAIMER:** This
 code is related to a research paper currently in submission.  The underlying

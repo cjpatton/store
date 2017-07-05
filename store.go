@@ -61,8 +61,8 @@ char *get_row_ptr(char *table, int row, int row_bytes) {
 */
 import "C"
 
-// Number of bytes to use for the salt. The salt is a random string used to
-// construct the table. It is prepended to the input of each HMAC call.
+// Number of bytes to use for the salt, a random string used to construct the
+// table. It is prepended to the input of each HMAC call.
 const SaltBytes = 8
 
 // Number of row bytes allocated for the tag.
@@ -87,10 +87,10 @@ func (err Error) Error() string {
 }
 
 // Returned by Get() and priv.GetValue() if the input was not found in the
-// dictionary.
+// map.
 const ItemNotFound = Error("item not found")
 
-// Returned by GetRow() in case idx not in the table index.
+// Returned by pub.GetShare() in case x or y is not in the table index.
 const ErrorIdx = Error("index out of range")
 
 // cError propagates an error from the internal C code.
@@ -203,9 +203,9 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	return pub, priv, nil
 }
 
-// NewPubStoreFromTable creates a new *PubStore from a *StoreTable protobuf.
+// NewPubStoreFromTable creates a new *PubStore from a *pb.StoreTable.
 //
-// NOTE You must destroy the output with pub.Free().
+// You must destroy with pub.Free().
 func NewPubStoreFromTable(table *pb.StoreTable) *PubStore {
 	pub := new(PubStore)
 	pub.dict = (*C.dict_t)(C.malloc(C.sizeof_dict_t))
@@ -268,7 +268,7 @@ func (pub *PubStore) ToString() string {
 	return pub.GetTable().String()
 }
 
-// GetTable returns a *StoreTable protobuf representation of the dictionary.
+// GetTable returns a *pb.StoreTable representation of the dictionary.
 func (pub *PubStore) GetTable() *pb.StoreTable {
 	cdict := C.dict_compress(pub.dict)
 	defer C.cdict_free(cdict)
@@ -293,8 +293,7 @@ func (pub *PubStore) Free() {
 
 // NewPrivStore creates a new *PrivStore from a key and parameters.
 //
-// NOTE You must destroy this with priv.Free().
-// NOTE Called by New().
+// You must destroy this with priv.Free().
 func NewPrivStore(K []byte, params *pb.StoreParams) (*PrivStore, error) {
 	priv := new(PrivStore)
 
@@ -381,7 +380,7 @@ func (priv *PrivStore) Free() {
 	C.tinyprf_free(priv.tinyCtx)
 }
 
-// Returns true if the first saltBytes of *a and *b are equal.
+// cBytesToString maps a *C.char to a []byte.
 func cBytesToString(str *C.char, bytes C.int) string {
 	return C.GoStringN(str, bytes)
 }
