@@ -69,6 +69,9 @@ as the adversary doesn't know (or can't guess) `K`. But if `K` is derived from a
 password, for example, then the contents of `pub` are susceptible to dictionary
 attacks.
 
+For documentation of this package, check out the
+[GoDoc](http://godoc.org/github.com/cjpatton/store) index.
+
 Installation
 ------------
 First, you'll need Go. To get the latest version on Ubuntu, do
