@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/cjpatton/store/pb"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -204,7 +205,7 @@ func New(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 // NewPubStoreFromTable creates a new *PubStore from a *StoreTable protobuf.
 //
 // NOTE You must destroy the output with pub.Free().
-func NewPubStoreFromTable(table *StoreTable) *PubStore {
+func NewPubStoreFromTable(table *pb.StoreTable) *PubStore {
 	pub := new(PubStore)
 	pub.dict = (*C.dict_t)(C.malloc(C.sizeof_dict_t))
 
@@ -267,7 +268,7 @@ func (pub *PubStore) ToString() string {
 }
 
 // GetTable returns a *StoreTable protobuf representation of the dictionary.
-func (pub *PubStore) GetTable() *StoreTable {
+func (pub *PubStore) GetTable() *pb.StoreTable {
 	cdict := C.dict_compress(pub.dict)
 	defer C.cdict_free(cdict)
 	rowBytes := int(pub.dict.params.row_bytes)
@@ -276,7 +277,7 @@ func (pub *PubStore) GetTable() *StoreTable {
 	for i := 0; i < tableLen; i++ {
 		tableIdx[i] = int32(C.get_int_list(cdict.idx, C.int(i)))
 	}
-	return &StoreTable{
+	return &pb.StoreTable{
 		Params: cParamsToStoreParams(&pub.dict.params),
 		Table:  C.GoBytes(unsafe.Pointer(cdict.table), C.int(tableLen*rowBytes)),
 		Idx:    tableIdx,
@@ -293,7 +294,7 @@ func (pub *PubStore) Free() {
 //
 // NOTE You must destroy this with priv.Free().
 // NOTE Called by New().
-func NewPrivStore(K []byte, params *StoreParams) (*PrivStore, error) {
+func NewPrivStore(K []byte, params *pb.StoreParams) (*PrivStore, error) {
 	priv := new(PrivStore)
 
 	// Check that K is the right length.
@@ -367,7 +368,7 @@ func (priv *PrivStore) GetValue(input string, pubShare []byte) (string, error) {
 }
 
 // GetParams returns the public parameters of the data structure.
-func (priv *PrivStore) GetParams() *StoreParams {
+func (priv *PrivStore) GetParams() *pb.StoreParams {
 	return cParamsToStoreParams(&priv.params)
 }
 
@@ -388,8 +389,8 @@ func cBytesToString(str *C.char, bytes C.int) string {
 // deep copy of the salt.
 //
 // Called by pub.GetParams() and priv.GetParams().
-func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
-	return &StoreParams{
+func cParamsToStoreParams(cParams *C.dict_params_t) *pb.StoreParams {
+	return &pb.StoreParams{
 		TableLen:       *proto.Int32(int32(cParams.table_length)),
 		MaxOutputBytes: *proto.Int32(int32(cParams.max_value_bytes)),
 		RowBytes:       *proto.Int32(int32(cParams.row_bytes)),
@@ -401,7 +402,7 @@ func cParamsToStoreParams(cParams *C.dict_params_t) *StoreParams {
 // setCParamsFromStoreparams copies parameters to a *C.dict_params_t.
 //
 // Must call C.free(cParams.salt)
-func setCParamsFromStoreParams(cParams *C.dict_params_t, params *StoreParams) {
+func setCParamsFromStoreParams(cParams *C.dict_params_t, params *pb.StoreParams) {
 	cParams.table_length = C.int(params.GetTableLen())
 	cParams.max_value_bytes = C.int(params.GetMaxOutputBytes())
 	cParams.row_bytes = C.int(params.GetRowBytes())

@@ -2,7 +2,7 @@
 // All rights reserved.
 syntax = "proto3";
 
-package store;
+package pb;
 
 // Parameters needed by PubStore and PrivStore.
 message StoreParams {

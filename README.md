@@ -1,6 +1,6 @@
 Good times with data structures
 ===============================
-- TODO(cjpatton) Describe what's going on at a high level.
+- TODO(cjatton) Describe what's going on at a high level.
 - TODO(cjpatton) Add doc tests and check in docs.
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY
@@ -13,9 +13,9 @@ Package store provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
 protocols where the service is trusted to provide storage, but is otherwise
-not trusted.
+untrusted.
 
-The client possesses a secret key `K` and data `M` (of type `map[string]string`.
+The client possesses a secret key `K` and data `M` (of type `map[string]string`).
 It executes:
 ```
 pub, priv, err := store.New(K, M)
@@ -28,7 +28,7 @@ x, y, err := priv.GetIdx(input)
 ```
 
 and sends `x` and `y` to the server. These are integers corresponding to rows in
-a table (of type `[][]byte`) encoded by `pub`. The server executes:
+a table encoded by `pub`. The server executes:
 ```
 pubShare, err := pub.GetShare(x, y)
 ```
@@ -48,18 +48,18 @@ client. The data structure is designed so that _no_ information about `input` or
 Note that the length of each `output` is limited to 60 bytes; see the Go
 documentation for details.
 
-The `StoreProvider` RPC service
--------------------------------
-`store.proto` provides a simple [remote procedure
+The `store.StoreProvider` RPC service
+-------------------------------------
+`store.proto` specifies a bare-bones [remote procedure
 call](http://www.grpc.io/docs/quickstart/go.html) for requesting public shares.
 The `user` computes `pub` from its map `M` and key `K` and provisions the
 service provider (out-of-band) with `pub`.  The request consists of the `user`
 and the table rows `x` and `y`, and the response consists of the `pubShare`
 computed from `x`, `y`, and `pub`.
 
-This simple RPC provides no authentication, so any *anyone* can get the *entire*
-public store of *any* user. This is not a problem, however, as long as the
-adversary doesn't know (or can't guess) `K`. But if `K` is derived from a
+This simple RPC provides no authentication of the user, so any *anyone* can get
+the *entire* public store of *any* user. This is not a problem, however, as long
+as the adversary doesn't know (or can't guess) `K`. But if `K` is derived from a
 password, for example, then the contents of `pub` are susceptible to dictionary
 attacks.
 
@@ -106,7 +106,7 @@ non-standard location. `Makefile` passes this directory to the compioler via
 $ make && make test
 ```
 Note that, since the data strucutres are probabilistic, the tests will produce
-warnings from time to time. (This is OK as long ast it doesn't produce **a lot**
+warnings from time to time. (This is OK as long as it doesn't produce **a lot**
 of warnings.) To install, do
 ```
 $ sudo make install && sudo ldconfig

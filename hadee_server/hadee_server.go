@@ -7,7 +7,7 @@
 //
 // Usage: hadee_serv user store.pub
 //   user: a string
-//   store.pub: a file encoding a store.StoreTable protobuf
+//   store.pub: a file encoding a pb.StoreTable protobuf
 package main
 
 import (
@@ -17,6 +17,7 @@ import (
 	"os"
 
 	"github.com/cjpatton/store"
+	"github.com/cjpatton/store/pb"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -30,16 +31,16 @@ const (
 // HadeeStoreProvider implements the StoreProvider RPC.
 type HadeeStoreProvider struct {
 	pubs   map[string](*store.PubStore)
-	params map[string](*store.StoreParams)
+	params map[string](*pb.StoreParams)
 }
 
 // NewHadeeStoreProvider creates a new HadeeStoreProvider.
 //
 // NOTE Must be dstroyed with s.CleanUp().
-func NewHadeeStoreProvider(user string, table *store.StoreTable) *HadeeStoreProvider {
+func NewHadeeStoreProvider(user string, table *pb.StoreTable) *HadeeStoreProvider {
 	s := new(HadeeStoreProvider)
 	s.pubs = make(map[string](*store.PubStore))
-	s.params = make(map[string](*store.StoreParams))
+	s.params = make(map[string](*pb.StoreParams))
 	s.pubs[user] = store.NewPubStoreFromTable(table)
 	s.params[user] = table.GetParams()
 	return s
@@ -55,26 +56,26 @@ func (s *HadeeStoreProvider) CleanUp() {
 	}
 }
 
-func (s *HadeeStoreProvider) GetShare(ctx context.Context, in *store.ShareRequest) (*store.ShareReply, error) {
+func (s *HadeeStoreProvider) GetShare(ctx context.Context, in *pb.ShareRequest) (*pb.ShareReply, error) {
 	log.Println("GetShare")
 	if pub, ok := s.pubs[in.GetUserId()]; ok {
 		if pubShare, err := pub.GetShare(int(in.GetX()), int(in.GetY())); err == nil {
-			return &store.ShareReply{Error: store.StoreProviderError_OK, PubShare: pubShare}, nil
+			return &pb.ShareReply{Error: pb.StoreProviderError_OK, PubShare: pubShare}, nil
 		} else if err == store.ErrorIdx {
-			return &store.ShareReply{Error: store.StoreProviderError_INDEX}, nil
+			return &pb.ShareReply{Error: pb.StoreProviderError_INDEX}, nil
 		} else {
 			return nil, err // Unexpected error!
 		}
 	}
-	return &store.ShareReply{Error: store.StoreProviderError_BAD_USER}, nil
+	return &pb.ShareReply{Error: pb.StoreProviderError_BAD_USER}, nil
 }
 
-func (s *HadeeStoreProvider) GetParams(ctx context.Context, in *store.ParamsRequest) (*store.ParamsReply, error) {
+func (s *HadeeStoreProvider) GetParams(ctx context.Context, in *pb.ParamsRequest) (*pb.ParamsReply, error) {
 	log.Println("GetParams")
 	if params, ok := s.params[in.GetUserId()]; ok {
-		return &store.ParamsReply{Error: store.StoreProviderError_OK, Params: params}, nil
+		return &pb.ParamsReply{Error: pb.StoreProviderError_OK, Params: params}, nil
 	}
-	return &store.ParamsReply{Error: store.StoreProviderError_BAD_USER}, nil
+	return &pb.ParamsReply{Error: pb.StoreProviderError_BAD_USER}, nil
 }
 
 func main() {
@@ -87,7 +88,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	table := new(store.StoreTable)
+	table := new(pb.StoreTable)
 	if err = proto.Unmarshal(tableString, table); err != nil {
 		log.Fatal("failed to parse protobuf: ", err)
 	}
@@ -101,7 +102,7 @@ func main() {
 	}
 	log.Println("Opened TCP socket on", port)
 	s := grpc.NewServer()
-	store.RegisterStoreProviderServer(s, storeProvider)
+	pb.RegisterStoreProviderServer(s, storeProvider)
 	reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

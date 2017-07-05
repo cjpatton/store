@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/cjpatton/store"
+	"github.com/cjpatton/store/pb"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -41,17 +42,17 @@ func main() {
 		return
 	}
 	defer conn.Close()
-	c := store.NewStoreProviderClient(conn)
+	c := pb.NewStoreProviderClient(conn)
 
 	// Get parameters for store associated to user.
-	paramsReply, err := c.GetParams(context.Background(), &store.ParamsRequest{UserId: user})
+	paramsReply, err := c.GetParams(context.Background(), &pb.ParamsRequest{UserId: user})
 	if err != nil {
 		fmt.Println("ParamsRequest fails", err)
 		return
-	} else if paramsReply.GetError() == store.StoreProviderError_BAD_USER {
+	} else if paramsReply.GetError() == pb.StoreProviderError_BAD_USER {
 		fmt.Printf("ParamsRequest fails: user %q not found\n", user)
 		return
-	} else if paramsReply.GetError() != store.StoreProviderError_OK {
+	} else if paramsReply.GetError() != pb.StoreProviderError_OK {
 		fmt.Println("ParamsRequest fails:", paramsReply.GetError())
 		return
 	}
@@ -96,7 +97,7 @@ func main() {
 			return
 		}
 		shareReply, err := c.GetShare(context.Background(),
-			&store.ShareRequest{
+			&pb.ShareRequest{
 				UserId: user,
 				X:      int32(x),
 				Y:      int32(y),
@@ -105,7 +106,7 @@ func main() {
 		if err != nil {
 			fmt.Println("ShareRequest fails:", err)
 			return
-		} else if shareReply.GetError() != store.StoreProviderError_OK {
+		} else if shareReply.GetError() != pb.StoreProviderError_OK {
 			fmt.Println("ShareRequest fails:", shareReply.GetError())
 			return
 		}
