@@ -18,9 +18,13 @@ var credentials = map[string]string{
 	"google.com":   "hadi@hotmail.com;hadi12345",
 	"hotmail.com":  "hadi@hotmail.com;1947hadi",
 	"yahoo.com":    "steve.bannion@netzero.gov;123456789abcdef",
-	"myspace.com":  "pinkcatgirl@hotmail.com;Bradly Cooper is so cute!",
+	"myspace.com":  "pinkcatgirl@hotmail.com;OMG Bradly Cooper is so cute!",
 	"linkedin.com": "securityexpert@yahoo.com;s3kr1te3xp3rt!",
 	"zombo.com":    "hadi@hotmail.com;1;2;3;4",
+	"caves.org":    "splunker1990@netzero.com;cavesrkewl",
+	"CenterForKidsWhoCantReadGoodAndWannaLearnToDoOtherStuffGoodToo.org": "derek@bluesteel.com;LeTigre",
+	"center4ants.org": "derek@bluesteel.com;BalooSteal",
+	"pwned.org":       "someemail@kewl.org;L33tHaXor:25",
 }
 
 func main() {
