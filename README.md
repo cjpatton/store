@@ -1,20 +1,24 @@
 Good times with data structures
 ===============================
-- TODO(cjatton) Describe what's going on at a high level.
+- TODO(cjaetton) Describe what's going on at a high level.
 - TODO(cjpatton) Add doc tests and check in docs.
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY
-DISCLAIMER:** This code is related to a research paper currently in submission.
-The underlying cryptographic mechanism still needs a formal proof.
-
-Package `store`
----------------
-Package store provides secure storage of `map[string]string` objects. The
+This library provides secure storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
 protocols where the service is trusted to provide storage, but is otherwise
 untrusted.
 
+An overview and installation instructions follow; visit the
+[GoDoc](http://godoc.org/github.com/cjpatton/store) index for the full package
+documentation..
+
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **DISCLAIMER:** This
+code is related to a research paper currently in submission.  The underlying
+cryptographic mechanism still needs a formal proof.
+
+Package `store`
+---------------
 The client possesses a secret key `K` and data `M` (of type `map[string]string`).
 It executes:
 ```
