@@ -5,7 +5,7 @@ package store
 
 import "fmt"
 
-func ExampleVDeriveKeyFromPassword() {
+func ExampleDeriveKeyFromPassword() {
 	password := []byte("A really secure password")
 	salt := []byte("Optional salt, useful in many applications")
 	K := DeriveKeyFromPassword(password, salt)

@@ -9,13 +9,13 @@ untrusted.
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
 
-![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **Non-goals:** This
+![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **NON GOALS:** This
 package provides _private_ storage of maps, but does not provide _integrity_.
 Said another way, there's no way to detect if the service provider has
 manipulated the contents of the map. Doing so, however, does not compromise
 privacy.
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **DISCLAIMER:** This
+![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **DISCLAIMER:** This
 code is related to a research paper currently in submission.  The underlying
 cryptographic mechanism still needs a formal proof.
 
@@ -70,7 +70,7 @@ password, for example, then the contents of `pub` are susceptible to dictionary
 attacks.
 
 For documentation of this package, check out the
-[GoDoc](http://godoc.org/github.com/cjpatton/store) index.
+[GoDoc](http://godoc.org/github.com/cjpatton/store/pb) index.
 
 Installation
 ------------
