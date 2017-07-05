@@ -9,7 +9,7 @@ untrusted.
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **WARNING:** This
+![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **Non-goals:** This
 package provides _private_ storage of maps, but does not provide _integrity_.
 Said another way, there's no way to detect if the service provider has
 manipulated the contents of the map. Doing so, however, does not compromise
