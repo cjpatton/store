@@ -51,8 +51,8 @@ the key; its only job is to look up the rows of the table requested by the
 client. The data structure is designed so that _no_ information about `input` or
 `output` is leaked to any party not in possession of the secret key.
 
-Note that the length of each `output` is limited to 60 bytes; see the Go
-documentation for details.
+Note that the length of each `output` is limited to 60 bytes; see
+[GoDoc](http://godoc.org/github.com/cjpatton/store) for details.
 
 The `StoreProvider` RPC service
 -------------------------------------
