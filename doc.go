@@ -67,5 +67,9 @@ WARNIG: This package provides private storage of maps, but does not provide
 integrity. Said another way, there's no way to detect if the service provider
 has manipulated the contents of the map. Doing so, however, does not compromise
 privacy.
+
+NOTE: The underlying data structure is implemented in C. The source can be found
+in github.com/cjpatton/store/c; refer to github.com/cjpatton/store/README.md for
+installation instructions.
 */
 package store
