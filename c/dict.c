@@ -285,15 +285,17 @@ void dict_create_traverse2(dict_t *dict, tiny_ctx *tiny, graph_t *graph, int x,
 }
 
 // TODO Exit do-while loop if the number of retries exceeds 1000.
-int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
-    char **value, int *value_bytes, int item_ct) {
+graph_t *dict_create_and_output_graph(dict_t *dict, tiny_ctx *tiny, char **key,
+    int *key_bytes, char **value, int *value_bytes, int item_ct, int *err) {
 
   if (item_ct >= dict->params.table_length) {
-    return ERR_DICT_TOO_MANY_ITEMS;
+    *err = ERR_DICT_TOO_MANY_ITEMS;
+    return NULL;
   }
   for (int i = 0; i < item_ct; i++) {
     if (value_bytes[i] > dict->params.max_value_bytes) {
-      return ERR_DICT_LONG_VALUE;
+      *err = ERR_DICT_LONG_VALUE;
+      return NULL;
     }
   }
 
@@ -302,14 +304,14 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
 
   // Generate a random, simple, and acyclic graph.
   graph_t *graph = graph_new(dict->params.table_length);
-  int err, ct = 0;
+  int err2, ct = 0;
   do {
-    err = dict_generate_graph(dict, tiny, key, key_bytes, item_ct, graph);
-    if (err == OK) {
-      err = graph_simple_and_acyclic(graph);
+    err2 = dict_generate_graph(dict, tiny, key, key_bytes, item_ct, graph);
+    if (err2 == OK) {
+      err2 = graph_simple_and_acyclic(graph);
     }
     ct ++;
-  } while (err != OK);
+  } while (err2 != OK);
 
   // Compute table.
   //
@@ -317,9 +319,9 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
   // zeroed-out.
   for (int x = 0; x < graph->node_ct; x++) {
     if (graph->node[x].rec == 0) {
-      err = dict_create_traverse1(
+      err2 = dict_create_traverse1(
           dict, tiny, graph, x, x, key, key_bytes, value, value_bytes);
-      if (err != OK) {
+      if (err2 != OK) {
         break;
       }
       dict_create_traverse2(
@@ -327,6 +329,24 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
     }
   }
 
+  *err = err2;
+
+  if (err2 != OK) {
+    graph_free(graph);
+    return NULL;
+  }
+
+  return graph;
+}
+
+int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
+    char **value, int *value_bytes, int item_ct) {
+  int err;
+  graph_t *graph = dict_create_and_output_graph(
+      dict, tiny, key, key_bytes, value, value_bytes, item_ct, &err);
+  if (err != OK) {
+    return err;
+  }
   graph_free(graph);
   return err;
 }

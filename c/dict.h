@@ -130,6 +130,16 @@ int dict_generate_graph(dict_t *ctx, tiny_ctx *tiny, char **key,
 int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
     char **value, int *value_bytes, int item_ct);
 
+// Like dict_creat(), but returns the graph used to compute
+// the dictionary table.
+//
+// Returns:
+//  - Newly allocated graph_t* and sets *err = OK if successful (must delete
+//    with graph_free()), or
+//  - NULL and sets *err if an error occurred.
+graph_t *dict_create_and_output_graph(dict_t *dict, tiny_ctx *tiny, char **key,
+    int *key_bytes, char **value, int *value_bytes, int item_ct, int *err);
+
 // Computes row indices in dict->table corresponding to 'key' and sets *x and *y
 // to these values.
 //
