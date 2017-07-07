@@ -108,7 +108,7 @@ func (err Error) Error() string {
 	return string(err)
 }
 
-// Returned by Get() and priv.GetValue() if the input was not found in the
+// Returned by Get() and priv.GetOutput() if the input was not found in the
 // map.
 const ItemNotFound = Error("item not found")
 
@@ -428,7 +428,7 @@ func NewPrivDict(K []byte, params *pb.Params) (*PrivDict, error) {
 	// Set parameters.
 	setCParamsFromParams(&priv.params, params)
 
-	// A 0-byte string used by GetValue().
+	// A 0-byte string used by GetOutput().
 	priv.cZeroShare = (*C.char)(C.malloc(C.size_t(priv.params.row_bytes)))
 	C.memset(unsafe.Pointer(priv.cZeroShare), 0, C.size_t(priv.params.row_bytes))
 
@@ -449,9 +449,8 @@ func (priv *PrivDict) GetIdx(input string) (int, int, error) {
 	return int(x), int(y), nil
 }
 
-// GetValue computes the output associated with the input and the table rows.
-// TODO Rename GetOutput.
-func (priv *PrivDict) GetValue(input string, pubShare []byte) (string, error) {
+// GetOutput computes the output associated with the input and the table rows.
+func (priv *PrivDict) GetOutput(input string, pubShare []byte) (string, error) {
 	cInput := C.CString(input)
 	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
 	defer C.free(unsafe.Pointer(cInput))

@@ -152,7 +152,7 @@ func TestGet(t *testing.T) {
 	}
 }
 
-// Test priv.GetIdx, pub.GetShare, and priv.GetValue().
+// Test priv.GetIdx, pub.GetShare, and priv.GetOutput().
 func TestDictGetIdxRowValue(t *testing.T) {
 	pub, priv, err := NewDict(GenerateDictKey(), goodM)
 	if err != nil {
@@ -171,9 +171,9 @@ func TestDictGetIdxRowValue(t *testing.T) {
 			t.Errorf("pub.GetShare(%d, %d) fails: %s", x, y, err)
 		}
 		if pubShare != nil {
-			out, err := priv.GetValue(in, pubShare)
+			out, err := priv.GetOutput(in, pubShare)
 			if err != nil {
-				t.Errorf("priv.GetValue(%q, %q) fails: %s", in, pubShare, err)
+				t.Errorf("priv.GetOutput(%q, %q) fails: %s", in, pubShare, err)
 			} else if out != val {
 				t.Errorf("out = %q, expected %q", out, val)
 			}

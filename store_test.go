@@ -42,6 +42,19 @@ func TestStoreGetIdxRowValue(t *testing.T) {
 			}
 		}
 	}
+
+	badIn := "Nooooooo"
+	x, y, err := priv.GetIdx(badIn)
+	if err != nil {
+		t.Errorf("priv.GetIdx(%q) fails: %s", badIn, err)
+	}
+	pubShare, err := pub.GetShare(x, y)
+	if err == nil { // GetShare might succeed ...
+		out, err := priv.GetOutput(badIn, pubShare)
+		if err == nil { // ... But this should fail!
+			t.Errorf("priv.GetOutput(%q, %q) succeeds, expected failure: %s", out)
+		}
+	}
 }
 
 func TestNewPubStoreFromProto(t *testing.T) {

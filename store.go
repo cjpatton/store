@@ -116,7 +116,7 @@ func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 
 func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) {
 	nonceShareBytes := priv.dict.params.row_bytes
-	nonce, err := priv.dict.GetValue(input, pubShare[:nonceShareBytes])
+	nonce, err := priv.dict.GetOutput(input, pubShare[:nonceShareBytes])
 	if err != nil {
 		return "", err
 	}

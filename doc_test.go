@@ -43,9 +43,9 @@ func ExampleNewDict() {
 		return
 	}
 
-	out, err := priv.GetValue("Out", pubShare)
+	out, err := priv.GetOutput("Out", pubShare)
 	if err != nil {
-		fmt.Println("priv.GetValue() error:", err)
+		fmt.Println("priv.GetOutput() error:", err)
 		return
 	}
 
