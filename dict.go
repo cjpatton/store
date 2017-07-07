@@ -260,7 +260,7 @@ func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
 		return nil, nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
 	}
 
-	params := cParamsToDictParams(&pub.dict.params)
+	params := cParamsToParams(&pub.dict.params)
 
 	// Create priv.
 	//
@@ -308,7 +308,7 @@ func NewPubDictFromTable(table *pb.DictTable) *PubDict {
 
 	// Allocate memory for salt + 1 tweak byte and set the parameters.
 	pub.dict.params.salt = (*C.char)(C.malloc(C.size_t(len(table.GetParams().Salt) + 1)))
-	setCParamsFromDictParams(&pub.dict.params, table.GetParams())
+	setCParamsFromParams(&pub.dict.params, table.GetParams())
 
 	// Allocate memory for table + 1 zero row and copy the table.
 	tableLen := C.int(table.GetParams().GetTableLen())
@@ -375,7 +375,7 @@ func (pub *PubDict) GetTable() *pb.DictTable {
 		tableIdx[i] = int32(C.get_int_list(cdict.idx, C.int(i)))
 	}
 	return &pb.DictTable{
-		Params: cParamsToDictParams(&pub.dict.params),
+		Params: cParamsToParams(&pub.dict.params),
 		Table:  C.GoBytes(unsafe.Pointer(cdict.table), C.int(tableLen*rowBytes)),
 		Idx:    tableIdx,
 	}
@@ -390,7 +390,7 @@ func (pub *PubDict) Free() {
 // NewPrivDict creates a new *PrivDict from a key and parameters.
 //
 // You must destroy this with priv.Free().
-func NewPrivDict(K []byte, params *pb.DictParams) (*PrivDict, error) {
+func NewPrivDict(K []byte, params *pb.Params) (*PrivDict, error) {
 	priv := new(PrivDict)
 
 	// Check that K is the right length.
@@ -418,7 +418,7 @@ func NewPrivDict(K []byte, params *pb.DictParams) (*PrivDict, error) {
 	}
 
 	// Set parameters.
-	setCParamsFromDictParams(&priv.params, params)
+	setCParamsFromParams(&priv.params, params)
 
 	// A 0-byte string used by GetValue().
 	priv.cZeroShare = (*C.char)(C.malloc(C.size_t(priv.params.row_bytes)))
@@ -465,8 +465,8 @@ func (priv *PrivDict) GetValue(input string, pubShare []byte) (string, error) {
 }
 
 // GetParams returns the public parameters of the data structure.
-func (priv *PrivDict) GetParams() *pb.DictParams {
-	return cParamsToDictParams(&priv.params)
+func (priv *PrivDict) GetParams() *pb.Params {
+	return cParamsToParams(&priv.params)
 }
 
 // Free deallocates moemory associated with the C implementation of the
@@ -487,12 +487,12 @@ func cBytesToBytes(str *C.char, bytes C.int) []byte {
 	return C.GoBytes(unsafe.Pointer(str), bytes)
 }
 
-// cParamsToDictParams creates *DictParams from a *C.dict_params_t, making a
+// cParamsToParams creates *Params from a *C.dict_params_t, making a
 // deep copy of the salt.
 //
 // Called by pub.GetParams() and priv.GetParams().
-func cParamsToDictParams(cParams *C.dict_params_t) *pb.DictParams {
-	return &pb.DictParams{
+func cParamsToParams(cParams *C.dict_params_t) *pb.Params {
+	return &pb.Params{
 		TableLen:       *proto.Int32(int32(cParams.table_length)),
 		MaxOutputBytes: *proto.Int32(int32(cParams.max_value_bytes)),
 		RowBytes:       *proto.Int32(int32(cParams.row_bytes)),
@@ -504,7 +504,7 @@ func cParamsToDictParams(cParams *C.dict_params_t) *pb.DictParams {
 // setCParamsFromDictparams copies parameters to a *C.dict_params_t.
 //
 // Must call C.free(cParams.salt)
-func setCParamsFromDictParams(cParams *C.dict_params_t, params *pb.DictParams) {
+func setCParamsFromParams(cParams *C.dict_params_t, params *pb.Params) {
 	cParams.table_length = C.int(params.GetTableLen())
 	cParams.max_value_bytes = C.int(params.GetMaxOutputBytes())
 	cParams.row_bytes = C.int(params.GetRowBytes())

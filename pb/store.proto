@@ -5,7 +5,7 @@ syntax = "proto3";
 package pb;
 
 // Parameters needed by store.PubDict and store.PrivDict.
-message DictParams {
+message Params {
   int32 table_len = 1;
   int32 max_output_bytes = 2;
   int32 row_bytes = 3;
@@ -16,7 +16,7 @@ message DictParams {
 
 // A compressed representation of store.PubDict.
 message DictTable {
-  DictParams params = 1;
+  Params params = 1;
   bytes table = 2;
   repeated int32 idx = 3;
 }
@@ -70,6 +70,6 @@ message ParamsRequest {
 
 // The parameters response message.
 message ParamsReply {
-  DictParams params = 1;
+  Params params = 1;
   DictProviderError error = 2;
 }
