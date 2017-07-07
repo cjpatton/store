@@ -10,17 +10,17 @@ func ExampleDeriveKeyFromPassword() {
 	salt := []byte("Optional salt, useful in many applications")
 	K := DeriveKeyFromPassword(password, salt)
 	fmt.Println(len(K))
-	// Output: 16
+	// Output: 32
 }
 
-func ExampleGenerateKey() {
+func ExampleGenerateDictKey() {
 	K := GenerateKey()
 	fmt.Println(len(K))
-	// Output: 16
+	// Output: 32
 }
 
 func ExampleNewDict() {
-	K := GenerateKey()
+	K := GenerateDictKey()
 	M := map[string]string{"Out": "of this world!"}
 
 	pub, priv, err := NewDict(K, M)
@@ -54,7 +54,7 @@ func ExampleNewDict() {
 }
 
 func ExampleGet() {
-	K := GenerateKey()
+	K := GenerateDictKey()
 	M := map[string]string{"Out": "of this world!"}
 
 	pub, priv, err := NewDict(K, M)
@@ -83,7 +83,7 @@ func ExampleGet() {
 }
 
 func ExampleNewPubDictFromTable() {
-	K := GenerateKey()
+	K := GenerateDictKey()
 	M := map[string]string{"Out": "of this world!"}
 
 	pub, priv, err := NewDict(K, M)
@@ -102,7 +102,7 @@ func ExampleNewPubDictFromTable() {
 }
 
 func ExampleNewPrivDict() {
-	K := GenerateKey()
+	K := GenerateDictKey()
 	M := map[string]string{"Out": "of this world!"}
 
 	pub, priv, err := NewDict(K, M)

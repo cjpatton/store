@@ -45,11 +45,7 @@ func AssertStringEqError(t *testing.T, name string, got, exp string) {
 
 // Test that key generation and generation output a key of the correct length.
 func TestKey(t *testing.T) {
-	AssertIntEqError(t, "len(GenerateKey()))", len(GenerateKey()), KeyBytes)
-	password := []byte("hadi")
-	salt := []byte("1947")
-	K := DeriveKeyFromPassword(password, salt)
-	AssertIntEqError(t, "len(DeriveKeyFromPassword()))", len(K), KeyBytes)
+	AssertIntEqError(t, "len(GenerateDictKey()))", len(GenerateDictKey()), DictKeyBytes)
 }
 
 // Test NewDict() good and bad inputs.
@@ -103,7 +99,7 @@ func TestNewDict(t *testing.T) {
 
 // Test pub.GetParams() and priv.GetParams().
 func TestGetParams(t *testing.T) {
-	pub, priv, err := NewDict(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateDictKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewDict() fails: %s", err)
 	}
@@ -133,7 +129,7 @@ func TestGetParams(t *testing.T) {
 
 // Test Get().
 func TestGet(t *testing.T) {
-	pub, priv, err := NewDict(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateDictKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewDict() fails: %s", err)
 	}
@@ -158,7 +154,7 @@ func TestGet(t *testing.T) {
 
 // Test priv.GetIdx, pub.GetShare, and priv.GetValue().
 func TestGetIdxRowValue(t *testing.T) {
-	pub, priv, err := NewDict(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateDictKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewDict() fails: %s", err)
 	}
