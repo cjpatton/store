@@ -97,7 +97,7 @@ func ExampleNewPubDictFromTable() {
 	pubFromTable := NewPubDictFromProto(pub.GetProto())
 	defer pubFromTable.Free()
 
-	fmt.Println(pub.ToString() == pubFromTable.ToString())
+	fmt.Println(pub.String() == pubFromTable.String())
 	// Output: true
 }
 

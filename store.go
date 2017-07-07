@@ -5,7 +5,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	//	"encoding/hex"
+	"encoding/hex"
+	"fmt"
 
 	"github.com/cjpatton/store/pb"
 	"golang.org/x/crypto/pbkdf2"
@@ -167,7 +168,11 @@ func (pub *PubStore) GetProto() *pb.Store {
 }
 
 func (pub *PubStore) String() string {
-	return pub.GetProto().String() // FIXME
+	str := pub.dict.String()
+	for i := 0; i < len(pub.sealed); i++ {
+		str += fmt.Sprintf("%s\n", hex.EncodeToString(pub.sealed[i]))
+	}
+	return str
 }
 
 func NewPrivStore(K []byte, params *pb.Params) (*PrivStore, error) {

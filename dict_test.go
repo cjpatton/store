@@ -74,7 +74,7 @@ func TestNewDict(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
 	}
-	t.Log("pub\n", pub.ToString())
+	t.Logf("pub\n%s", pub.String())
 	defer pub.Free()
 	defer priv.Free()
 
@@ -92,7 +92,7 @@ func TestNewDict(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
 	}
-	t.Log("pub1\n", pub1.ToString())
+	t.Logf("pub1\n%s", pub1.String())
 	defer pub1.Free()
 	defer priv1.Free()
 }
@@ -193,7 +193,7 @@ func TestNewPubDictFromProto(t *testing.T) {
 	pub2 := NewPubDictFromProto(pub.GetProto())
 	defer pub2.Free()
 
-	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())
+	AssertStringEqError(t, "pub2.String()", pub2.String(), pub.String())
 
 	for in, val := range goodM {
 		out2, err := Get(pub2, priv, in)

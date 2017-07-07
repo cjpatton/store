@@ -11,6 +11,8 @@ func TestNewStore(t *testing.T) {
 	}
 	defer pub.Free()
 	defer priv.Free()
+
+	t.Log(pub.String())
 }
 
 // Test priv.GetIdx, pub.GetShare, and priv.GetValue().
@@ -55,5 +57,6 @@ func TestNewPubStoreFromProto(t *testing.T) {
 		defer pub2.Free()
 	}
 
-	AssertStringEqError(t, "pub2.ToString()", pub2.String(), pub.String())
+	AssertStringEqError(t, "pub2.ToString()",
+		pub2.GetProto().String(), pub.GetProto().String())
 }
