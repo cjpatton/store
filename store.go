@@ -1,10 +1,11 @@
 package store
 
 import (
-	//	"crypto/aes"
+	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	//"fmt"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -51,13 +52,52 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	pub := new(PubStore)
 	priv := new(PrivStore)
 
-	var err error
-	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(K[DictKeyBytes:], cM)
+	block, err := aes.NewCipher(K[:DictKeyBytes])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	priv.aead, err = cipher.NewGCM(block)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cN := cM.getNonceMap(priv.aead.NonceSize())
+	if cN == nil {
+		return nil, nil, Error("hella") // FIXME
+	}
+	defer cN.free()
+
+	pub.sealed = make([][]byte, len(M))
+	for i := 0; i < len(M); i++ {
+		// TODO M and A copied twice unnecessarily
+		cNonce, cNonceBytes := cN.getOutput(i)
+		cMessage, cMessageBytes := cM.getOutput(i)
+		cAssociatedData, cAssociatedDataBytes := cM.getInput(i)
+		N := cBytesToBytes(cNonce, cNonceBytes)
+		M := cBytesToBytes(cMessage, cMessageBytes)
+		A := cBytesToBytes(cAssociatedData, cAssociatedDataBytes)
+		pub.sealed[i] = priv.aead.Seal(nil, N, M, A)
+	}
+
+	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(K[DictKeyBytes:], cN)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return pub, priv, nil
+}
+
+func (priv *PrivStore) GetIdx(input string) (int, int, error) {
+	return 0, 0, Error("hella") //FIXME
+}
+
+func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
+	return nil, Error("hella") // FIXME
+}
+
+func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) {
+	return "", Error("hella") //FIXME
 }
 
 func (pub *PubStore) Free() {

@@ -40,6 +40,10 @@ int get_int_list(int *list, int idx) {
 	return list[idx];
 }
 
+char *get_str_list(char **list, int idx) {
+	return list[idx];
+}
+
 void free_str_list(char **list, int len) {
 	int i;
 	for (i = 0; i < len; i++) {
@@ -134,17 +138,12 @@ type cMap struct {
 	itemCt, maxOutputBytes  C.int
 	inputs, outputs         **C.char
 	inputBytes, outputBytes *C.int
-}
-
-func (cM *cMap) free() {
-	C.free_str_list(cM.inputs, cM.itemCt)
-	C.free_str_list(cM.outputs, cM.itemCt)
-	C.free_int_list(cM.inputBytes)
-	C.free_int_list(cM.outputBytes)
+	freeInputs              bool
 }
 
 func newCMap(M map[string]string) *cMap {
 	cM := new(cMap)
+	cM.freeInputs = true
 	cM.itemCt = C.int(len(M))
 	cM.inputs = C.new_str_list(cM.itemCt)
 	cM.inputBytes = C.new_int_list(cM.itemCt)
@@ -165,6 +164,49 @@ func newCMap(M map[string]string) *cMap {
 		i++
 	}
 	return cM
+}
+
+func (cM *cMap) getInput(i int) (*C.char, C.int) {
+	idx := C.int(i)
+	return C.get_str_list(cM.inputs, idx), C.get_int_list(cM.inputBytes, idx)
+}
+
+func (cM *cMap) getOutput(i int) (*C.char, C.int) {
+	idx := C.int(i)
+	return C.get_str_list(cM.outputs, idx), C.get_int_list(cM.outputBytes, idx)
+}
+
+func (cM *cMap) free() {
+	if cM.freeInputs {
+		C.free_str_list(cM.inputs, cM.itemCt)
+		C.free_int_list(cM.inputBytes)
+	}
+	C.free_str_list(cM.outputs, cM.itemCt)
+	C.free_int_list(cM.outputBytes)
+}
+
+func (cM *cMap) getNonceMap(nonceBytes int) *cMap {
+	cN := new(cMap)
+	cN.itemCt = cM.itemCt
+	cN.maxOutputBytes = C.int(nonceBytes)
+	cN.inputs = cM.inputs
+	cN.inputBytes = cM.inputBytes
+	cN.freeInputs = false
+	cN.outputs = C.new_str_list(cN.itemCt)
+	cN.outputBytes = C.new_int_list(cN.itemCt)
+
+	nonce := make([]byte, nonceBytes)
+	for i := C.int(0); i < cN.itemCt; i++ {
+		// TODO random initial nonce, then count
+		_, err := rand.Read(nonce)
+		if err != nil {
+			cN.free()
+			return nil
+		}
+		C.set_str_list(cN.outputs, C.int(i), C.CString(string(nonce)))
+		C.set_int_list(cN.outputBytes, C.int(i), C.int(len(nonce)))
+	}
+	return cN
 }
 
 // New generates a new structure (pub, priv) for the map M and key K.
@@ -220,7 +262,7 @@ func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
 		pub.dict, priv.tinyCtx, cM.inputs, cM.inputBytes, cM.outputs, cM.outputBytes, cM.itemCt, &errNo)
 	if errNo != C.OK {
 		priv.Free()
-		return nil, nil, nil, cError("dict_create", errNo)
+		return nil, nil, nil, cError("dict_create_and_output_graph", errNo)
 	}
 	defer C.graph_free(cGraph)
 
@@ -385,6 +427,7 @@ func (priv *PrivDict) GetIdx(input string) (int, int, error) {
 }
 
 // GetValue computes the output associated with the input and the table rows.
+// TODO Rename GetOutput.
 func (priv *PrivDict) GetValue(input string, pubShare []byte) (string, error) {
 	cInput := C.CString(input)
 	cOutput := C.CString(string(make([]byte, priv.params.max_value_bytes)))
@@ -422,6 +465,11 @@ func (priv *PrivDict) Free() {
 // cBytesToString maps a *C.char to a []byte.
 func cBytesToString(str *C.char, bytes C.int) string {
 	return C.GoStringN(str, bytes)
+}
+
+// cBytesToString maps a *C.char to a []byte.
+func cBytesToBytes(str *C.char, bytes C.int) []byte {
+	return C.GoBytes(unsafe.Pointer(str), bytes)
 }
 
 // cParamsToDictParams creates *DictParams from a *C.dict_params_t, making a

@@ -153,7 +153,7 @@ func TestGet(t *testing.T) {
 }
 
 // Test priv.GetIdx, pub.GetShare, and priv.GetValue().
-func TestGetIdxRowValue(t *testing.T) {
+func TestDictGetIdxRowValue(t *testing.T) {
 	pub, priv, err := NewDict(GenerateDictKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewDict() fails: %s", err)
