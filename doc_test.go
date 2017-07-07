@@ -19,13 +19,13 @@ func ExampleGenerateKey() {
 	// Output: 16
 }
 
-func ExampleNew() {
+func ExampleNewDict() {
 	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := New(K, M)
+	pub, priv, err := NewDict(K, M)
 	if err != nil {
-		fmt.Println("New() error:", err)
+		fmt.Println("NewDict() error:", err)
 		return
 	}
 	defer pub.Free()
@@ -57,9 +57,9 @@ func ExampleGet() {
 	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := New(K, M)
+	pub, priv, err := NewDict(K, M)
 	if err != nil {
-		fmt.Println("New() error:", err)
+		fmt.Println("NewDict() error:", err)
 		return
 	}
 	defer pub.Free()
@@ -82,46 +82,46 @@ func ExampleGet() {
 	// Get() error: item not found
 }
 
-func ExampleNewPubStoreFromTable() {
+func ExampleNewPubDictFromTable() {
 	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := New(K, M)
+	pub, priv, err := NewDict(K, M)
 	if err != nil {
-		fmt.Println("New() error:", err)
+		fmt.Println("NewDict() error:", err)
 		return
 	}
 	defer pub.Free()
 	defer priv.Free()
 
-	pubFromTable := NewPubStoreFromTable(pub.GetTable())
+	pubFromTable := NewPubDictFromTable(pub.GetTable())
 	defer pubFromTable.Free()
 
 	fmt.Println(pub.ToString() == pubFromTable.ToString())
 	// Output: true
 }
 
-func ExampleNewPrivStore() {
+func ExampleNewPrivDict() {
 	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := New(K, M)
+	pub, priv, err := NewDict(K, M)
 	if err != nil {
-		fmt.Println("New() error:", err)
+		fmt.Println("NewDict() error:", err)
 		return
 	}
 	defer pub.Free()
 	defer priv.Free()
 
-	privFromKeyAndPrivParams, err := NewPrivStore(K, priv.GetParams())
+	privFromKeyAndPrivParams, err := NewPrivDict(K, priv.GetParams())
 	if err != nil {
-		fmt.Println("NewPrivStore() error:", err)
+		fmt.Println("NewPrivDict() error:", err)
 	}
 	defer privFromKeyAndPrivParams.Free()
 
-	privFromKeyAndPubParams, err := NewPrivStore(K, pub.GetTable().GetParams())
+	privFromKeyAndPubParams, err := NewPrivDict(K, pub.GetTable().GetParams())
 	if err != nil {
-		fmt.Println("NewPrivStore() error:", err)
+		fmt.Println("NewPrivDict() error:", err)
 	}
 	defer privFromKeyAndPubParams.Free()
 }

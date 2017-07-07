@@ -4,8 +4,8 @@ syntax = "proto3";
 
 package pb;
 
-// Parameters needed by store.PubStore and store.PrivStore.
-message StoreParams {
+// Parameters needed by store.PubDict and store.PrivDict.
+message DictParams {
   int32 table_len = 1;
   int32 max_output_bytes = 2;
   int32 row_bytes = 3;
@@ -14,24 +14,24 @@ message StoreParams {
   bytes salt = 6;
 }
 
-// A compressed representation of store.PubStore.
-message StoreTable {
-  StoreParams params = 1;
+// A compressed representation of store.PubDict.
+message DictTable {
+  DictParams params = 1;
   bytes table = 2;
   repeated int32 idx = 3;
 }
 
 // Errors output by the remote procedure calls.
-enum StoreProviderError {
+enum DictProviderError {
   OK = 0;
   BAD_USER = 1;
   INDEX = 2;
 }
 
-// Definition for the storage provider storage. The StoreProvider stores a map
+// Definition for the storage provider storage. The DictProvider stores a map
 // from user IDs to his/her public store. This service permits the client to get
-// the parameters with the PubStore and to request shares.
-service StoreProvider {
+// the parameters with the PubDict and to request shares.
+service DictProvider {
   rpc GetShare (ShareRequest) returns (ShareReply) {}
   rpc GetParams (ParamsRequest) returns (ParamsReply) {}
 }
@@ -46,7 +46,7 @@ message ShareRequest {
 // The share response message.
 message ShareReply {
   bytes pub_share = 1;
-  StoreProviderError error = 2;
+  DictProviderError error = 2;
 }
 
 // The parameters request message.
@@ -56,6 +56,6 @@ message ParamsRequest {
 
 // The parameters response message.
 message ParamsReply {
-  StoreParams params = 1;
-  StoreProviderError error = 2;
+  DictParams params = 1;
+  DictProviderError error = 2;
 }

@@ -52,31 +52,31 @@ func TestKey(t *testing.T) {
 	AssertIntEqError(t, "len(DeriveKeyFromPassword()))", len(K), KeyBytes)
 }
 
-// Test New() good and bad inputs.
-func TestNew(t *testing.T) {
+// Test NewDict() good and bad inputs.
+func TestNewDict(t *testing.T) {
 
 	// Test with map with a value that is too long.
-	pub, priv, err := New(goodK, badM)
+	pub, priv, err := NewDict(goodK, badM)
 	if err == nil {
-		t.Fatal("New(goodK, badM) succeeds, expected error")
+		t.Fatal("NewDict(goodK, badM) succeeds, expected error")
 	}
 
 	// Test with map with no items.
-	pub, priv, err = New(goodK, emptyM)
+	pub, priv, err = NewDict(goodK, emptyM)
 	if err == nil {
-		t.Fatalf("New(goodK, emptyM) succeeds, expected error")
+		t.Fatalf("NewDict(goodK, emptyM) succeeds, expected error")
 	}
 
 	// Test with key that is not the right length.
-	pub, priv, err = New(badK, goodM)
+	pub, priv, err = NewDict(badK, goodM)
 	if err == nil {
-		t.Fatal("New(badK, goodM) succeeds, expected error")
+		t.Fatal("NewDict(badK, goodM) succeeds, expected error")
 	}
 
 	// Test with good inputs.
-	pub, priv, err = New(goodK, goodM)
+	pub, priv, err = NewDict(goodK, goodM)
 	if err != nil {
-		t.Fatalf("New(goodK, goodM) fails: %s", err)
+		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
 	}
 	t.Log("pub\n", pub.ToString())
 	defer pub.Free()
@@ -92,9 +92,9 @@ func TestNew(t *testing.T) {
 		cBytesToString(priv.params.salt, priv.params.salt_bytes),
 		cBytesToString(pub.dict.params.salt, pub.dict.params.salt_bytes))
 
-	pub1, priv1, err := New(goodK, oneM)
+	pub1, priv1, err := NewDict(goodK, oneM)
 	if err != nil {
-		t.Fatalf("New(goodK, goodM) fails: %s", err)
+		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
 	}
 	t.Log("pub1\n", pub1.ToString())
 	defer pub1.Free()
@@ -103,9 +103,9 @@ func TestNew(t *testing.T) {
 
 // Test pub.GetParams() and priv.GetParams().
 func TestGetParams(t *testing.T) {
-	pub, priv, err := New(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("New() fails: %s", err)
+		t.Fatalf("NewDict() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
@@ -133,9 +133,9 @@ func TestGetParams(t *testing.T) {
 
 // Test Get().
 func TestGet(t *testing.T) {
-	pub, priv, err := New(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("New() fails: %s", err)
+		t.Fatalf("NewDict() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
@@ -158,9 +158,9 @@ func TestGet(t *testing.T) {
 
 // Test priv.GetIdx, pub.GetShare, and priv.GetValue().
 func TestGetIdxRowValue(t *testing.T) {
-	pub, priv, err := New(GenerateKey(), goodM)
+	pub, priv, err := NewDict(GenerateKey(), goodM)
 	if err != nil {
-		t.Fatalf("New() fails: %s", err)
+		t.Fatalf("NewDict() fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
@@ -185,16 +185,16 @@ func TestGetIdxRowValue(t *testing.T) {
 	}
 }
 
-// Test NewPubStoreFromTable().
-func TestNewPubStoreFromTable(t *testing.T) {
-	pub, priv, err := New(goodK, goodM)
+// Test NewPubDictFromTable().
+func TestNewPubDictFromTable(t *testing.T) {
+	pub, priv, err := NewDict(goodK, goodM)
 	if err != nil {
-		t.Fatalf("New(goodK, goodM) fails: %s", err)
+		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
 	}
 	defer pub.Free()
 	defer priv.Free()
 
-	pub2 := NewPubStoreFromTable(pub.GetTable())
+	pub2 := NewPubDictFromTable(pub.GetTable())
 	defer pub2.Free()
 
 	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())
