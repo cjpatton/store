@@ -238,25 +238,31 @@ func NewDict(K []byte, M map[string]string) (*PubDict, *PrivDict, error) {
 	cM := newCMap(M)
 	defer cM.free()
 
-	pub, priv, _, err := newDictAndGraph(K, cM)
+	pub, priv, _, err := newDictAndGraph(K, cM, TagBytes, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	return pub, priv, nil
 }
 
-// TODO Unpadded version!!
-func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
+func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *PrivDict, Graph, error) {
 
 	pub := new(PubDict)
 
 	// Allocate a new dictionary object.
 	tableLen := C.dict_compute_table_length(cM.itemCt)
+	var cPad C.int
+	if pad {
+		cPad = C.int(1)
+	} else {
+		cPad = C.int(0)
+	}
 	pub.dict = C.dict_new(
 		tableLen,
 		cM.maxOutputBytes,
-		C.int(TagBytes),
-		C.int(SaltBytes))
+		C.int(tagBytes),
+		C.int(SaltBytes),
+		cPad)
 	if pub.dict == nil {
 		return nil, nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
 	}
@@ -499,12 +505,19 @@ func cBytesToBytes(str *C.char, bytes C.int) []byte {
 //
 // Called by pub.GetParams() and priv.GetParams().
 func cParamsToParams(cParams *C.dict_params_t) *pb.Params {
+	var pad bool
+	if cParams.f_pad == C.int(1) {
+		pad = true
+	} else {
+		pad = false
+	}
 	return &pb.Params{
 		TableLen:       *proto.Int32(int32(cParams.table_length)),
 		MaxOutputBytes: *proto.Int32(int32(cParams.max_value_bytes)),
 		RowBytes:       *proto.Int32(int32(cParams.row_bytes)),
 		TagBytes:       *proto.Int32(int32(cParams.tag_bytes)),
 		Salt:           C.GoBytes(unsafe.Pointer(cParams.salt), cParams.salt_bytes),
+		Pad:            pad,
 	}
 }
 
@@ -521,6 +534,11 @@ func setCParamsFromParams(cParams *C.dict_params_t, params *pb.Params) {
 	C.memcpy(unsafe.Pointer(cParams.salt),
 		unsafe.Pointer(cBuf),
 		C.size_t(cParams.salt_bytes))
+	if params.GetPad() {
+		cParams.f_pad = C.int(1)
+	} else {
+		cParams.f_pad = C.int(0)
+	}
 }
 
 // getRow returns a []byte corresponding to row in the table.

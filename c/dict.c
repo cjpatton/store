@@ -4,7 +4,6 @@
 #include "const.h"
 #include "dict.h"
 
-#include "assert.h"
 #include "openssl/rand.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -98,15 +97,19 @@ int dict_compute_table_length(int item_ct) {
 }
 
 dict_t *dict_new(int table_length, int max_value_bytes, int tag_bytes,
-    int salt_bytes) {
-  if ((max_value_bytes + tag_bytes + 1) > HASH_BYTES) {
+    int salt_bytes, int pad) {
+  if (pad != 1 && pad != 0) {
+    return NULL;
+  }
+  if ((max_value_bytes + tag_bytes + pad) > HASH_BYTES) {
     return NULL;
   }
   dict_t *dict = malloc(sizeof(dict_t));
+  dict->params.f_pad = pad;
   dict->params.table_length = table_length;
   dict->params.max_value_bytes = max_value_bytes;
   dict->params.tag_bytes = tag_bytes;
-  dict->params.row_bytes = tag_bytes + max_value_bytes + 1;
+  dict->params.row_bytes = tag_bytes + max_value_bytes + pad;
   dict->params.salt_bytes = salt_bytes;
   dict->table = malloc(table_length * (dict->params.row_bytes) * sizeof(char));
   dict->params.salt = malloc((salt_bytes + 1) * sizeof(char));
@@ -239,7 +242,9 @@ int dict_create_traverse1(dict_t *dict, tiny_ctx *tiny, graph_t *graph, int x,
     for (int j = 0; j < value_bytes[e]; j++) {
       dict->table[yrow+j] ^= value[e][j];
     }
-    dict->table[yrow+value_bytes[e]] ^= PAD_BYTE;
+    if (dict->params.f_pad) {
+      dict->table[yrow+value_bytes[e]] ^= PAD_BYTE;
+    }
 
     // Add y to p.
     for (int j = 0; j < dict->params.row_bytes; j++) {
@@ -377,17 +382,17 @@ int dict_compute_value(dict_params_t params, tiny_ctx *tiny, const char *key, in
 
   // Check the tag.
   char t = ZERO_BYTE;
-  for (int j = params.max_value_bytes+1; j < params.row_bytes; j++) {
+  for (int j = params.max_value_bytes+params.f_pad; j < params.row_bytes; j++) {
     t |= buf[j];
   }
 
   // If tag bytes are all 0, then copy value to 'value'.
   if (t == ZERO_BYTE) {
     int last_byte = params.max_value_bytes;
-    while (last_byte > 0 && buf[last_byte] == ZERO_BYTE) {
+    while (params.f_pad && last_byte > 0 && buf[last_byte] == ZERO_BYTE) {
       last_byte--;
     }
-    if (buf[last_byte] != PAD_BYTE) {
+    if (params.f_pad && buf[last_byte] != PAD_BYTE) {
       return ERR_DICT_BAD_PADDING;
     }
     memcpy(value, buf, last_byte);
@@ -426,6 +431,7 @@ cdict_t *dict_compress(dict_t *dict) {
   compressed->params.tag_bytes = dict->params.tag_bytes;
   compressed->params.row_bytes = row_bytes;
   compressed->params.salt_bytes = salt_bytes;
+  compressed->params.f_pad = dict->params.f_pad;
 
   // Copy salt.
   compressed->params.salt = malloc(salt_bytes + 1);

@@ -81,7 +81,8 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		pub.sealed[i] = priv.aead.Seal(nil, N, M, A)
 	}
 
-	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(K[DictKeyBytes:], cN)
+	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(
+		K[DictKeyBytes:], cN, 0, false)
 	if err != nil {
 		return nil, nil, err
 	}

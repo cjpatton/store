@@ -70,7 +70,8 @@ typedef struct {
       max_value_bytes, // Maximum length of any allowed value
       tag_bytes,       // Number of bytes used for tag
       row_bytes,       // max_value_bytes+tag_bytes+1
-      salt_bytes;      // Length of the salt
+      salt_bytes,      // Length of the salt
+      f_pad;           // Flag indicating if the outputs are padded.
 
   char *salt; // Of length salt_bytes + 1.
 
@@ -102,7 +103,7 @@ int dict_compute_table_length(int item_ct);
 // padding the value. Must be freed with dict_free(). Returns NULL if row_bytes
 // > HASH_BYTES (defined in const.h).
 dict_t *dict_new(int table_length, int max_value_bytes, int tag_bytes,
-    int salt_bytes);
+    int salt_bytes, int pad);
 
 // Frees memory allocated to dict.
 void dict_free(dict_t *dict);
@@ -138,7 +139,7 @@ int dict_create(dict_t *dict, tiny_ctx *tiny, char **key, int *key_bytes,
 //    with graph_free()), or
 //  - NULL and sets *err if an error occurred.
 graph_t *dict_create_and_output_graph(dict_t *dict, tiny_ctx *tiny, char **key,
-    int *key_bytes, char **value, int *value_bytes, int item_ct, int *err);
+    int *key_bytes, char **value, int *value_bytes, int item_ct,  int *err);
 
 // Computes row indices in dict->table corresponding to 'key' and sets *x and *y
 // to these values.

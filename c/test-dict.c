@@ -60,12 +60,20 @@ char *value [] = {
 
 int value_bytes [] = { 6, 5, 0 };
 
+char *value_nopad [] = {
+  "01234567",
+  "89abcdef",
+  "ghijklmn"
+};
+
+int value_nopad_bytes [] = { 8, 8, 8 };
+
 int test_dict_new_free() {
   int ret = OK;
   const char test[] = "dict_new_free";
 
   // Test good dict_new().
-  dict_t *dict = dict_new(1000, 16, 3, 8);
+  dict_t *dict = dict_new(1000, 16, 3, 8, 1);
   ASSERT_FATAL("dict is NULL", dict != NULL);
   ASSERT_EQ_ERROR("table_length", dict->params.table_length, 1000);
   ASSERT_EQ_ERROR("max_value_bytes", dict->params.max_value_bytes, 16);
@@ -75,7 +83,7 @@ int test_dict_new_free() {
   dict_free(dict);
 
   // Test bad dict_new().
-  dict = dict_new(1000, HASH_BYTES, 1, 16);
+  dict = dict_new(1000, HASH_BYTES, 1, 16, 1);
   ASSERT_FATAL("dict not NULL", dict == NULL);
 
   return ret;
@@ -85,7 +93,7 @@ int test_bad_create() {
   int ret = OK;
   const char test[] = "bad_create";
 
-  dict_t *dict = dict_new(2, 2, 3, 8);
+  dict_t *dict = dict_new(2, 2, 3, 8, 1);
   tiny_ctx *tiny = tinyhash_new(2);
 
   int err = dict_create(dict, tiny, key, key_bytes, value, value_bytes, 3);
@@ -118,7 +126,7 @@ int test_dict_create_get() {
   tiny_ctx *tiny = tinyprf_new(table_length);
   tinyprf_init_generate_key(tiny);
 
-  dict_t *dict = dict_new(table_length, max_value_bytes, tag_bytes, salt_bytes);
+  dict_t *dict = dict_new(table_length, max_value_bytes, tag_bytes, salt_bytes, 1);
 
   char out [max_value_bytes];
   int out_bytes;
@@ -139,6 +147,56 @@ int test_dict_create_get() {
       ASSERT_EQ_ERROR("dict_get(): strncmp(value[it], out, out_bytes)",
         strncmp(value[it], out, out_bytes), 0);
     }
+  }
+
+  if (ret != OK) {
+    tinyprf_free(tiny);
+    dict_free(dict);
+    return ret;
+  }
+
+  err = dict_get(dict, tiny, "hella", strlen("hella"), out, &out_bytes);
+  ASSERT_EQ_ERROR("dict_get()", err, ERR_DICT_BAD_KEY);
+
+  tinyprf_free(tiny);
+  dict_free(dict);
+  return ret;
+}
+
+int test_dict_create_nopad_get() {
+  int ret = OK;
+  const char test[] = "dict_create_nopad_get";
+
+  int tag_bytes = 2,
+      salt_bytes = 8,
+      item_ct = 3;
+
+  // Make sure that the value[0] is the longest.
+  int max_value_bytes = value_nopad_bytes[0];
+  int table_length = dict_compute_table_length(item_ct);
+
+  tiny_ctx *tiny = tinyprf_new(table_length);
+  tinyprf_init_generate_key(tiny);
+
+  dict_t *dict = dict_new(table_length, max_value_bytes, tag_bytes, salt_bytes, 0);
+
+  char out [max_value_bytes];
+  int out_bytes;
+
+  int err = dict_create(
+      dict, tiny, key, key_bytes, value_nopad, value_nopad_bytes, item_ct);
+  ASSERT_OK_FATAL("dict_create()", err);
+  // FIXME Callback
+  //
+  // tinyprf_free(tiny);
+  // dict_free(dict);
+
+  for (int it = 0; it < item_ct; it++) {
+    err = dict_get(dict, tiny, key[it], key_bytes[it], out, &out_bytes);
+    ASSERT_OK_ERROR("dict_get()", err);
+    ASSERT_EQ_ERROR("dict_get(): out_bytes", out_bytes, value_nopad_bytes[it]);
+    ASSERT_EQ_ERROR("dict_get(): strncmp(value[it], out, out_bytes)",
+      strncmp(value_nopad[it], out, out_bytes), 0);
   }
 
   if (ret != OK) {
@@ -186,7 +244,7 @@ int test_many() {
   tinyprf_init_generate_key(tiny);
 
   dict_t *dict = dict_new(table_length, max_value_bytes, tag_bytes,
-      salt_bytes);
+      salt_bytes, 1);
 
   int err = dict_create(dict, tiny, key, key_bytes, value, value_bytes,
       item_ct);
@@ -264,7 +322,7 @@ int test_cdict() {
   tinyprf_init_generate_key(tiny);
 
   dict_t *dict = dict_new(table_length, max_value_bytes, tag_bytes,
-      salt_bytes);
+      salt_bytes, 1);
 
   int err = dict_create(dict, tiny, key, key_bytes, value, value_bytes,
       item_ct);
@@ -321,6 +379,7 @@ int main() {
   if (test_dict_new_free()==OK &&
       test_bad_create()==OK &&
       test_dict_create_get()==OK &&
+      test_dict_create_nopad_get()==OK &&
       test_many()==OK &&
       test_cdict()==OK) {
     printf("pass\n");

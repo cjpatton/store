@@ -12,6 +12,7 @@ message Params {
   int32 tag_bytes = 4;
   int32 salt_bytes = 5;
   bytes salt = 6;
+  bool pad = 7;
 }
 
 // A compressed representation of store.PubDict.
