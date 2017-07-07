@@ -45,18 +45,53 @@ func TestStoreGetIdxRowValue(t *testing.T) {
 }
 
 func TestNewPubStoreFromProto(t *testing.T) {
-	pub, priv, err := NewStore(GenerateKey(), goodM)
+	pub1, priv1, err := NewStore(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewStore() fails: %s", err)
 	}
-	defer pub.Free()
-	defer priv.Free()
+	defer pub1.Free()
+	defer priv1.Free()
 
-	pub2 := NewPubStoreFromProto(pub.GetProto())
+	pub2 := NewPubStoreFromProto(pub1.GetProto())
 	if pub2 != nil {
 		defer pub2.Free()
 	}
 
 	AssertStringEqError(t, "pub2.ToString()",
-		pub2.GetProto().String(), pub.GetProto().String())
+		pub2.GetProto().String(), pub1.GetProto().String())
+}
+
+func TestNewPrivStore(t *testing.T) {
+	K := GenerateKey()
+	pub1, priv1, err := NewStore(K, goodM)
+	if err != nil {
+		t.Fatalf("NewStore() fails: %s", err)
+	}
+	defer pub1.Free()
+	defer priv1.Free()
+
+	priv2, err := NewPrivStore(K, priv1.GetParams())
+	if err != nil {
+		t.Fatalf("NewPrivStore() fails: %s", err)
+	}
+	defer priv2.Free()
+
+	testInput := "cool"
+	x1, y1, err := priv1.GetIdx(testInput)
+	if err != nil {
+		t.Errorf("priv1.GetIdx() fails: %s", err)
+	}
+
+	x2, y2, err := priv2.GetIdx(testInput)
+	if err != nil {
+		t.Errorf("priv2.GetIdx() fails: %s", err)
+	}
+
+	AssertIntEqError(t, "x1", x1, x2)
+	AssertIntEqError(t, "y1", y1, y2)
+
+	nonce := []byte("123456789abc")
+	output1 := priv1.aead.Seal(nil, nonce, []byte(testInput), nil)
+	output2 := priv2.aead.Seal(nil, nonce, []byte(testInput), nil)
+	AssertStringEqError(t, "output1", string(output1), string(output2))
 }

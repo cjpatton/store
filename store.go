@@ -58,7 +58,6 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
 	priv.aead, err = cipher.NewGCM(block)
 	if err != nil {
 		return nil, nil, err
@@ -176,9 +175,24 @@ func (pub *PubStore) String() string {
 }
 
 func NewPrivStore(K []byte, params *pb.Params) (*PrivStore, error) {
-	return nil, Error("hella") // TODO
+	priv := new(PrivStore)
+
+	block, err := aes.NewCipher(K[:DictKeyBytes])
+	if err != nil {
+		return nil, err
+	}
+	priv.aead, err = cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	priv.dict, err = NewPrivDict(K[DictKeyBytes:], params)
+	if err != nil {
+		return nil, err
+	}
+	return priv, nil
 }
 
 func (priv *PrivStore) GetParams() *pb.Params {
-	return nil
+	return priv.dict.GetParams()
 }
