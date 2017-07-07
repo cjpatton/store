@@ -15,14 +15,14 @@ message Params {
 }
 
 // A compressed representation of store.PubDict.
-message DictTable {
+message Dict {
   Params params = 1;
   bytes table = 2;
   repeated int32 idx = 3;
 }
 
 // A compressed representation of store.PubStore.
-message StoreTable {
+message Store {
   message AdjList {
     repeated int32 edge = 1;
   }
@@ -32,7 +32,7 @@ message StoreTable {
 
   repeated bytes sealed = 4;
 
-  DictTable dict_table = 5;
+  Dict dict = 5;
 }
 
 // Errors output by the remote procedure calls.

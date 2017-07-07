@@ -299,10 +299,10 @@ func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
 	return pub, priv, graph, nil
 }
 
-// NewPubDictFromTable creates a new *PubDict from a *pb.DictTable.
+// NewPubDictFromProto creates a new *PubDict from a *pb.Dict.
 //
 // You must destroy with pub.Free().
-func NewPubDictFromTable(table *pb.DictTable) *PubDict {
+func NewPubDictFromProto(table *pb.Dict) *PubDict {
 	pub := new(PubDict)
 	pub.dict = (*C.dict_t)(C.malloc(C.sizeof_dict_t))
 
@@ -361,11 +361,11 @@ func (pub *PubDict) GetShare(x, y int) ([]byte, error) {
 
 // ToString returns a string representation of the table.
 func (pub *PubDict) ToString() string {
-	return pub.GetTable().String()
+	return pub.GetProto().String()
 }
 
-// GetTable returns a *pb.DictTable representation of the dictionary.
-func (pub *PubDict) GetTable() *pb.DictTable {
+// GetProto returns a *pb.Dict representation of the dictionary.
+func (pub *PubDict) GetProto() *pb.Dict {
 	cdict := C.dict_compress(pub.dict)
 	defer C.cdict_free(cdict)
 	rowBytes := int(pub.dict.params.row_bytes)
@@ -374,7 +374,7 @@ func (pub *PubDict) GetTable() *pb.DictTable {
 	for i := 0; i < tableLen; i++ {
 		tableIdx[i] = int32(C.get_int_list(cdict.idx, C.int(i)))
 	}
-	return &pb.DictTable{
+	return &pb.Dict{
 		Params: cParamsToParams(&pub.dict.params),
 		Table:  C.GoBytes(unsafe.Pointer(cdict.table), C.int(tableLen*rowBytes)),
 		Idx:    tableIdx,

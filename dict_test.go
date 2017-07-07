@@ -106,7 +106,7 @@ func TestGetParams(t *testing.T) {
 	defer pub.Free()
 	defer priv.Free()
 
-	params := pub.GetTable().GetParams()
+	params := pub.GetProto().GetParams()
 	if params == nil {
 		t.Error("pub.GetParams() = nil, expected success")
 	}
@@ -181,8 +181,8 @@ func TestDictGetIdxRowValue(t *testing.T) {
 	}
 }
 
-// Test NewPubDictFromTable().
-func TestNewPubDictFromTable(t *testing.T) {
+// Test NewPubDictFromProto().
+func TestNewPubDictFromProto(t *testing.T) {
 	pub, priv, err := NewDict(goodK, goodM)
 	if err != nil {
 		t.Fatalf("NewDict(goodK, goodM) fails: %s", err)
@@ -190,7 +190,7 @@ func TestNewPubDictFromTable(t *testing.T) {
 	defer pub.Free()
 	defer priv.Free()
 
-	pub2 := NewPubDictFromTable(pub.GetTable())
+	pub2 := NewPubDictFromProto(pub.GetProto())
 	defer pub2.Free()
 
 	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())

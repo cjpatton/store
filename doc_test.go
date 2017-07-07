@@ -94,7 +94,7 @@ func ExampleNewPubDictFromTable() {
 	defer pub.Free()
 	defer priv.Free()
 
-	pubFromTable := NewPubDictFromTable(pub.GetTable())
+	pubFromTable := NewPubDictFromProto(pub.GetProto())
 	defer pubFromTable.Free()
 
 	fmt.Println(pub.ToString() == pubFromTable.ToString())
@@ -119,7 +119,7 @@ func ExampleNewPrivDict() {
 	}
 	defer privFromKeyAndPrivParams.Free()
 
-	privFromKeyAndPubParams, err := NewPrivDict(K, pub.GetTable().GetParams())
+	privFromKeyAndPubParams, err := NewPrivDict(K, pub.GetProto().GetParams())
 	if err != nil {
 		fmt.Println("NewPrivDict() error:", err)
 	}

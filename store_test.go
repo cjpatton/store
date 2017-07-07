@@ -42,7 +42,7 @@ func TestStoreGetIdxRowValue(t *testing.T) {
 	}
 }
 
-func TestNewPubStoreFromTable(t *testing.T) {
+func TestNewPubStoreFromProto(t *testing.T) {
 	pub, priv, err := NewStore(GenerateKey(), goodM)
 	if err != nil {
 		t.Fatalf("NewStore() fails: %s", err)
@@ -50,10 +50,10 @@ func TestNewPubStoreFromTable(t *testing.T) {
 	defer pub.Free()
 	defer priv.Free()
 
-	pub2 := NewPubStoreFromTable(pub.GetTable())
+	pub2 := NewPubStoreFromProto(pub.GetProto())
 	if pub2 != nil {
 		defer pub2.Free()
 	}
 
-	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())
+	AssertStringEqError(t, "pub2.ToString()", pub2.String(), pub.String())
 }

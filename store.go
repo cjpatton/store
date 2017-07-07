@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	//	"encoding/hex"
 
 	"github.com/cjpatton/store/pb"
 	"golang.org/x/crypto/pbkdf2"
@@ -135,9 +136,9 @@ func (priv *PrivStore) Free() {
 	priv.dict.Free()
 }
 
-func NewPubStoreFromTable(table *pb.StoreTable) *PubStore {
+func NewPubStoreFromProto(table *pb.Store) *PubStore {
 	pub := new(PubStore)
-	pub.dict = NewPubDictFromTable(table.GetDictTable())
+	pub.dict = NewPubDictFromProto(table.GetDict())
 	pub.sealed = table.GetSealed()
 	pub.graph = make(Graph, table.GetNodeCt())
 	for i := 0; i < len(table.Node); i++ {
@@ -146,31 +147,31 @@ func NewPubStoreFromTable(table *pb.StoreTable) *PubStore {
 	return pub
 }
 
-func (pub *PubStore) GetTable() *pb.StoreTable {
-	adjList := make([]*pb.StoreTable_AdjList, 0)
+func (pub *PubStore) GetProto() *pb.Store {
+	adjList := make([]*pb.Store_AdjList, 0)
 	node := make([]int32, 0)
 	for i := 0; i < len(pub.graph); i++ {
 		if len(pub.graph[i]) > 0 {
 			node = append(node, int32(i))
 			adjList = append(adjList,
-				&pb.StoreTable_AdjList{Edge: pub.graph[i]})
+				&pb.Store_AdjList{Edge: pub.graph[i]})
 		}
 	}
-	return &pb.StoreTable{
-		DictTable: pub.dict.GetTable(),
-		Sealed:    pub.sealed,
-		Node:      node,
-		AdjList:   adjList,
-		NodeCt:    int32(len(pub.graph)),
+	return &pb.Store{
+		Dict:    pub.dict.GetProto(),
+		Sealed:  pub.sealed,
+		Node:    node,
+		AdjList: adjList,
+		NodeCt:  int32(len(pub.graph)),
 	}
 }
 
-func (pub *PubStore) ToString() string {
-	return pub.GetTable().String()
+func (pub *PubStore) String() string {
+	return pub.GetProto().String() // FIXME
 }
 
 func NewPrivStore(K []byte, params *pb.Params) (*PrivStore, error) {
-	return nil, Error("hella") // TOOD
+	return nil, Error("hella") // TODO
 }
 
 func (priv *PrivStore) GetParams() *pb.Params {
