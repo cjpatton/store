@@ -53,20 +53,12 @@ char *key [] = {
 int key_bytes [] = { 4, 2, 5 };
 
 char *value [] = {
-  "secret",
+  "secretp",
   "stuff",
   ""
 };
 
-int value_bytes [] = { 6, 5, 0 };
-
-char *value_nopad [] = {
-  "01234567",
-  "89abcdef",
-  "ghijklmn"
-};
-
-int value_nopad_bytes [] = { 8, 8, 8 };
+int value_bytes [] = { 7, 5, 0 };
 
 int test_dict_new_free() {
   int ret = OK;
@@ -167,12 +159,18 @@ int test_dict_create_nopad_get() {
   int ret = OK;
   const char test[] = "dict_create_nopad_get";
 
+  char *value_nopad [] = {
+    "01234567",
+    "89abcdef",
+    "ghijklmn"
+  };
+
   int tag_bytes = 2,
       salt_bytes = 8,
       item_ct = 3;
 
   // Make sure that the value[0] is the longest.
-  int max_value_bytes = value_nopad_bytes[0];
+  int max_value_bytes = 8;
   int table_length = dict_compute_table_length(item_ct);
 
   tiny_ctx *tiny = tinyprf_new(table_length);
@@ -184,7 +182,7 @@ int test_dict_create_nopad_get() {
   int out_bytes;
 
   int err = dict_create(
-      dict, tiny, key, key_bytes, value_nopad, value_nopad_bytes, item_ct);
+      dict, tiny, key, key_bytes, value_nopad, NULL, item_ct);
   ASSERT_OK_FATAL("dict_create()", err);
   // FIXME Callback
   //
@@ -194,7 +192,7 @@ int test_dict_create_nopad_get() {
   for (int it = 0; it < item_ct; it++) {
     err = dict_get(dict, tiny, key[it], key_bytes[it], out, &out_bytes);
     ASSERT_OK_ERROR("dict_get()", err);
-    ASSERT_EQ_ERROR("dict_get(): out_bytes", out_bytes, value_nopad_bytes[it]);
+    ASSERT_EQ_ERROR("dict_get(): out_bytes", out_bytes, max_value_bytes);
     ASSERT_EQ_ERROR("dict_get(): strncmp(value[it], out, out_bytes)",
       strncmp(value_nopad[it], out, out_bytes), 0);
   }

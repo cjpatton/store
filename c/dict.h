@@ -102,6 +102,9 @@ int dict_compute_table_length(int item_ct);
 // Lets row_bytes = max_value_bytes + tag_bytes + 1. The extra byte is for
 // padding the value. Must be freed with dict_free(). Returns NULL if row_bytes
 // > HASH_BYTES (defined in const.h).
+//
+// If pad == 1, then the outputs will be padded; otherwise, each output is
+// assumed to be equal to max_value_bytes.
 dict_t *dict_new(int table_length, int max_value_bytes, int tag_bytes,
     int salt_bytes, int pad);
 
@@ -122,6 +125,9 @@ int dict_generate_graph(dict_t *ctx, tiny_ctx *tiny, char **key,
 
 // Constructs a dictionary from the sequences 'key' and 'value', each of length
 // 'item_ct'.
+//
+// If dict->params.f_pad == 0, then it is assumed that each value[i] is of
+// length dict->params.max_value_bytes. In this case, value_bytes may be NULL.
 //
 // Returns:
 //  - OK if successful,

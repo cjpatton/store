@@ -209,6 +209,8 @@ int dict_create_traverse1(dict_t *dict, tiny_ctx *tiny, graph_t *graph, int x,
   int e, y, err, prow = ROW(p);
   graph->node[x].rec = 1;
 
+  int bytes = dict->params.max_value_bytes;
+
   // For each child y of x.
   for (int i = 0; i < graph->node[x].adj_ct; i++) {
 
@@ -237,13 +239,17 @@ int dict_create_traverse1(dict_t *dict, tiny_ctx *tiny, graph_t *graph, int x,
       }
     }
 
+    if (dict->params.f_pad) {
+      bytes = value_bytes[e];
+    }
+
     // Add value[e] to y.
     int yrow = ROW(y);
-    for (int j = 0; j < value_bytes[e]; j++) {
+    for (int j = 0; j < bytes; j++) {
       dict->table[yrow+j] ^= value[e][j];
     }
     if (dict->params.f_pad) {
-      dict->table[yrow+value_bytes[e]] ^= PAD_BYTE;
+      dict->table[yrow+bytes] ^= PAD_BYTE;
     }
 
     // Add y to p.
@@ -297,10 +303,12 @@ graph_t *dict_create_and_output_graph(dict_t *dict, tiny_ctx *tiny, char **key,
     *err = ERR_DICT_TOO_MANY_ITEMS;
     return NULL;
   }
-  for (int i = 0; i < item_ct; i++) {
-    if (value_bytes[i] > dict->params.max_value_bytes) {
-      *err = ERR_DICT_LONG_VALUE;
-      return NULL;
+  if (dict->params.f_pad) {
+    for (int i = 0; i < item_ct; i++) {
+      if (value_bytes[i] > dict->params.max_value_bytes) {
+        *err = ERR_DICT_LONG_VALUE;
+        return NULL;
+      }
     }
   }
 
