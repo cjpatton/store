@@ -131,18 +131,24 @@ type PrivDict struct {
 	cZeroShare *C.char
 }
 
-// TODO
-type Graph [][]int
+type Graph [][]int32
 
+// Storage of map[string]string for processing with the C code.
 type cMap struct {
 	itemCt, maxOutputBytes  C.int
 	inputs, outputs         **C.char
 	inputBytes, outputBytes *C.int
-	freeInputs              bool
+
+	// Indicates to free() whether or inputs and inputBytes are a shallow copy,
+	// and hence should not be freed.
+	freeInputs bool
 }
 
-func newCMap(M map[string]string) *cMap {
-	cM := new(cMap)
+// newCMap constructs a new *cMap from a Go map.
+//
+// This must be freed with cM.free().
+func newCMap(M map[string]string) (cM *cMap) {
+	cM = new(cMap)
 	cM.freeInputs = true
 	cM.itemCt = C.int(len(M))
 	cM.inputs = C.new_str_list(cM.itemCt)
@@ -151,6 +157,8 @@ func newCMap(M map[string]string) *cMap {
 	cM.outputBytes = C.new_int_list(cM.itemCt)
 	cM.maxOutputBytes = C.int(0)
 	i := 0
+	// NOTE Go does not guarantee that the map will be traversed in the same
+	// order each time.
 	for in, out := range M {
 		if C.int(len(out)) > cM.maxOutputBytes {
 			cM.maxOutputBytes = C.int(len(out))
@@ -166,16 +174,19 @@ func newCMap(M map[string]string) *cMap {
 	return cM
 }
 
+// getInput returns a pointer to the i-th input, as well as its length.
 func (cM *cMap) getInput(i int) (*C.char, C.int) {
 	idx := C.int(i)
 	return C.get_str_list(cM.inputs, idx), C.get_int_list(cM.inputBytes, idx)
 }
 
+// getInput returns a pointer to the i-th output, as well as its length.
 func (cM *cMap) getOutput(i int) (*C.char, C.int) {
 	idx := C.int(i)
 	return C.get_str_list(cM.outputs, idx), C.get_int_list(cM.outputBytes, idx)
 }
 
+// free() frees memory allocated to cM.
 func (cM *cMap) free() {
 	if cM.freeInputs {
 		C.free_str_list(cM.inputs, cM.itemCt)
@@ -185,13 +196,16 @@ func (cM *cMap) free() {
 	C.free_int_list(cM.outputBytes)
 }
 
-func (cM *cMap) getNonceMap(nonceBytes int) *cMap {
-	cN := new(cMap)
+// getNonceMap returns a *cMap mapping each input of cM to a fresh nonce.
+//
+// Must free with cN.free().
+func (cM *cMap) getNonceMap(nonceBytes int) (cN *cMap) {
+	cN = new(cMap)
 	cN.itemCt = cM.itemCt
 	cN.maxOutputBytes = C.int(nonceBytes)
 	cN.inputs = cM.inputs
 	cN.inputBytes = cM.inputBytes
-	cN.freeInputs = false
+	cN.freeInputs = false // The inputs are shallow copied.
 	cN.outputs = C.new_str_list(cN.itemCt)
 	cN.outputBytes = C.new_int_list(cN.itemCt)
 
@@ -230,6 +244,7 @@ func NewDict(K []byte, M map[string]string) (*PubDict, *PrivDict, error) {
 	return pub, priv, nil
 }
 
+// TODO Unpadded version!!
 func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
 
 	pub := new(PubDict)
@@ -272,12 +287,12 @@ func newDictAndGraph(K []byte, cM *cMap) (*PubDict, *PrivDict, Graph, error) {
 		C.size_t(priv.params.salt_bytes))
 
 	// Save adjcency list.
-	graph := make([][]int, int(cGraph.node_ct))
+	graph := make([][]int32, int32(cGraph.node_ct))
 	for i := C.int(0); i < cGraph.node_ct; i++ {
 		cAdjCt := C.get_node(cGraph, i).adj_ct
-		graph[i] = make([]int, int(cAdjCt))
+		graph[i] = make([]int32, int32(cAdjCt))
 		for j := C.int(0); j < cAdjCt; j++ {
-			graph[i][j] = int(C.get_edge(cGraph, i, j))
+			graph[i][j] = int32(C.get_edge(cGraph, i, j))
 		}
 	}
 

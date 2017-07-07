@@ -41,3 +41,19 @@ func TestStoreGetIdxRowValue(t *testing.T) {
 		}
 	}
 }
+
+func TestNewPubStoreFromTable(t *testing.T) {
+	pub, priv, err := NewStore(GenerateKey(), goodM)
+	if err != nil {
+		t.Fatalf("NewStore() fails: %s", err)
+	}
+	defer pub.Free()
+	defer priv.Free()
+
+	pub2 := NewPubStoreFromTable(pub.GetTable())
+	if pub2 != nil {
+		defer pub2.Free()
+	}
+
+	AssertStringEqError(t, "pub2.ToString()", pub2.ToString(), pub.ToString())
+}

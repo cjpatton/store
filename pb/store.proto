@@ -21,6 +21,20 @@ message DictTable {
   repeated int32 idx = 3;
 }
 
+// A compressed representation of store.PubStore.
+message StoreTable {
+  message AdjList {
+    repeated int32 edge = 1;
+  }
+  repeated AdjList adj_list = 1;
+  repeated int32 node = 2;
+  int32 node_ct = 3;
+
+  repeated bytes sealed = 4;
+
+  DictTable dict_table = 5;
+}
+
 // Errors output by the remote procedure calls.
 enum DictProviderError {
   OK = 0;

@@ -5,8 +5,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	//"fmt"
 
+	"github.com/cjpatton/store/pb"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -89,15 +89,42 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 }
 
 func (priv *PrivStore) GetIdx(input string) (int, int, error) {
-	return 0, 0, Error("hella") //FIXME
+	return priv.dict.GetIdx(input)
 }
 
 func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
-	return nil, Error("hella") // FIXME
+
+	// Get nonce share.
+	nonceShare, err := pub.dict.GetShare(x, y)
+	if err != nil {
+		return nil, err
+	}
+
+	// Look up sealed output.
+	for i := 0; i < len(pub.graph[x]); i++ {
+		e := pub.graph[x][i]
+		for j := 0; j < len(pub.graph[y]); j++ {
+			if pub.graph[y][j] == e {
+				return append(nonceShare, pub.sealed[e]...), nil
+			}
+		}
+	}
+
+	return nil, ItemNotFound
 }
 
 func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) {
-	return "", Error("hella") //FIXME
+	nonceShareBytes := priv.dict.params.row_bytes
+	nonce, err := priv.dict.GetValue(input, pubShare[:nonceShareBytes])
+	if err != nil {
+		return "", err
+	}
+	output, err := priv.aead.Open(
+		nil, []byte(nonce), pubShare[nonceShareBytes:], []byte(input))
+	if err != nil {
+		return "", ItemNotFound
+	}
+	return string(output), nil
 }
 
 func (pub *PubStore) Free() {
@@ -106,4 +133,46 @@ func (pub *PubStore) Free() {
 
 func (priv *PrivStore) Free() {
 	priv.dict.Free()
+}
+
+func NewPubStoreFromTable(table *pb.StoreTable) *PubStore {
+	pub := new(PubStore)
+	pub.dict = NewPubDictFromTable(table.GetDictTable())
+	pub.sealed = table.GetSealed()
+	pub.graph = make(Graph, table.GetNodeCt())
+	for i := 0; i < len(table.Node); i++ {
+		pub.graph[table.Node[i]] = table.AdjList[i].Edge
+	}
+	return pub
+}
+
+func (pub *PubStore) GetTable() *pb.StoreTable {
+	adjList := make([]*pb.StoreTable_AdjList, 0)
+	node := make([]int32, 0)
+	for i := 0; i < len(pub.graph); i++ {
+		if len(pub.graph[i]) > 0 {
+			node = append(node, int32(i))
+			adjList = append(adjList,
+				&pb.StoreTable_AdjList{Edge: pub.graph[i]})
+		}
+	}
+	return &pb.StoreTable{
+		DictTable: pub.dict.GetTable(),
+		Sealed:    pub.sealed,
+		Node:      node,
+		AdjList:   adjList,
+		NodeCt:    int32(len(pub.graph)),
+	}
+}
+
+func (pub *PubStore) ToString() string {
+	return pub.GetTable().String()
+}
+
+func NewPrivStore(K []byte, params *pb.DictParams) (*PrivStore, error) {
+	return nil, Error("hella") // TOOD
+}
+
+func (priv *PrivStore) GetParams() *pb.DictParams {
+	return nil
 }
