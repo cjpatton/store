@@ -1,5 +1,8 @@
 Secure Go maps
 ==============
+
+**TODO(cjpatton)** Update documentation.
+
 This package provides private storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
