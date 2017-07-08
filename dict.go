@@ -140,10 +140,6 @@ type cMap struct {
 	itemCt, maxOutputBytes  C.int
 	inputs, outputs         **C.char
 	inputBytes, outputBytes *C.int
-
-	// Indicates to free() whether or inputs and inputBytes are a shallow copy,
-	// and hence should not be freed.
-	freeInputs bool
 }
 
 // newCMap constructs a new *cMap from a Go map.
@@ -151,7 +147,6 @@ type cMap struct {
 // This must be freed with cM.free().
 func newCMap(M map[string]string) (cM *cMap) {
 	cM = new(cMap)
-	cM.freeInputs = true
 	cM.itemCt = C.int(len(M))
 	cM.inputs = C.new_str_list(cM.itemCt)
 	cM.inputBytes = C.new_int_list(cM.itemCt)
@@ -176,56 +171,35 @@ func newCMap(M map[string]string) (cM *cMap) {
 	return cM
 }
 
-// getInput returns a pointer to the i-th input, as well as its length.
-func (cM *cMap) getInput(i int) (*C.char, C.int) {
-	idx := C.int(i)
-	return C.get_str_list(cM.inputs, idx), C.get_int_list(cM.inputBytes, idx)
-}
-
-// getInput returns a pointer to the i-th output, as well as its length.
-func (cM *cMap) getOutput(i int) (*C.char, C.int) {
-	idx := C.int(i)
-	output := C.get_str_list(cM.outputs, idx)
-	var outputBytes C.int
-	if cM.outputBytes != nil {
-		outputBytes = C.get_int_list(cM.outputBytes, idx)
-	} else {
-		outputBytes = cM.maxOutputBytes
+// getCtrCMap returns a *cMap mapping each input of to a fresh nonce.
+//
+// Must free with cN.free().
+func newCtrCMap(inputs [][]byte, ctrBytes int) (cM *cMap) {
+	cM = new(cMap)
+	cM.itemCt = C.int(len(inputs))
+	cM.inputs = C.new_str_list(cM.itemCt)
+	cM.inputBytes = C.new_int_list(cM.itemCt)
+	cM.outputs = C.new_str_list(cM.itemCt)
+	cM.outputBytes = nil
+	cM.maxOutputBytes = C.int(ctrBytes)
+	ctr := make([]byte, ctrBytes)
+	for i := C.int(0); i < cM.itemCt; i++ {
+		C.set_str_list(cM.inputs, i, (*C.char)(C.CBytes(inputs[i])))
+		C.set_int_list(cM.inputBytes, i, C.int(len(inputs[i])))
+		binary.LittleEndian.PutUint32(ctr, uint32(i))
+		C.set_str_list(cM.outputs, i, (*C.char)(C.CBytes(ctr)))
 	}
-	return output, outputBytes
+	return cM
 }
 
 // free() frees memory allocated to cM.
 func (cM *cMap) free() {
-	if cM.freeInputs {
-		C.free_str_list(cM.inputs, cM.itemCt)
-		C.free_int_list(cM.inputBytes)
-	}
+	C.free_str_list(cM.inputs, cM.itemCt)
+	C.free_int_list(cM.inputBytes)
 	C.free_str_list(cM.outputs, cM.itemCt)
 	if cM.outputBytes != nil { // Ctr map does not set this variable.
 		C.free_int_list(cM.outputBytes)
 	}
-}
-
-// getCtrMap returns a *cMap mapping each input of cM to a fresh nonce.
-//
-// Must free with cN.free().
-func (cM *cMap) getCtrMap(ctrBytes int) (cN *cMap) {
-	cN = new(cMap)
-	cN.itemCt = cM.itemCt
-	cN.maxOutputBytes = C.int(ctrBytes)
-	cN.inputs = cM.inputs
-	cN.inputBytes = cM.inputBytes
-	cN.freeInputs = false // The inputs are shallow copied.
-	cN.outputs = C.new_str_list(cN.itemCt)
-	cN.outputBytes = nil
-
-	ctr := make([]byte, ctrBytes)
-	for i := uint32(0); i < uint32(cN.itemCt); i++ {
-		binary.LittleEndian.PutUint32(ctr, i)
-		C.set_str_list(cN.outputs, C.int(i), C.CString(string(ctr)))
-	}
-	return cN
 }
 
 // New generates a new structure (pub, priv) for the map M and key K.

@@ -5,7 +5,6 @@ package store
 // is in the set before actually requesting it from the server. I should
 // evaluate experimentally how frequently the server ends up sending a
 // ciphertext needless for an incorrect query.
-// TODO store.go:104
 // TODO Should Store and Dict implement the same interface?
 
 import (
@@ -60,9 +59,6 @@ type PrivStore struct {
 
 func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 
-	cM := newCMap(M)
-	defer cM.free()
-
 	pub := new(PubStore)
 	priv := new(PrivStore)
 
@@ -86,9 +82,18 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		return nil, nil, ErrorMapTooLarge
 	}
 
+	inputs := make([][]byte, len(M))
+	outputs := make([][]byte, len(M))
+	i := 0
+	for in, out := range M {
+		inputs[i] = []byte(in)
+		outputs[i] = []byte(out)
+		i++
+	}
+
 	// Create a *cMap for inputs to counters. This is what will actually be
 	// stored by pub.dict.
-	cN := cM.getCtrMap(ctrBytes)
+	cN := newCtrCMap(inputs, ctrBytes)
 	defer cN.free()
 
 	// Construct the graph.
@@ -103,13 +108,9 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	ctr := make([]byte, ctrBytes)
 	pub.sealed = make([][]byte, len(M))
 	for i := 0; i < len(M); i++ {
-		// TODO M and A copied twice unnecessarily
-		cMessage, cMessageBytes := cM.getOutput(i)
-		cAssociatedData, cAssociatedDataBytes := cM.getInput(i)
-		M := cBytesToBytes(cMessage, cMessageBytes)
-		A := cBytesToBytes(cAssociatedData, cAssociatedDataBytes)
 		binary.LittleEndian.PutUint32(ctr, uint32(i))
-		pub.sealed[i] = priv.aead.Seal(nil, append(nonce, ctr...), M, A)
+		pub.sealed[i] = priv.aead.Seal(nil, append(nonce, ctr...),
+			outputs[i], inputs[i])
 	}
 
 	return pub, priv, nil
