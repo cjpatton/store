@@ -29,18 +29,18 @@ const (
 // HadeeStoreProvider implements the StoreProvider RPC.
 type HadeeStoreProvider struct {
 	pubs   map[string](*store.PubStore)
-	params map[string](*pb.StoreParams)
+	params map[string](*pb.Params)
 }
 
 // NewHadeeStoreProvider creates a new HadeeStoreProvider.
 //
 // NOTE Must be dstroyed with s.CleanUp().
-func NewHadeeStoreProvider(user string, table *pb.StoreTable) *HadeeStoreProvider {
+func NewHadeeStoreProvider(user string, table *pb.Store) *HadeeStoreProvider {
 	s := new(HadeeStoreProvider)
 	s.pubs = make(map[string](*store.PubStore))
-	s.params = make(map[string](*pb.StoreParams))
-	s.pubs[user] = store.NewPubStoreFromTable(table)
-	s.params[user] = table.GetParams()
+	s.params = make(map[string](*pb.Params))
+	s.pubs[user] = store.NewPubStoreFromProto(table)
+	s.params[user] = table.GetDict().GetParams()
 	return s
 }
 
@@ -61,6 +61,8 @@ func (s *HadeeStoreProvider) GetShare(ctx context.Context, in *pb.ShareRequest) 
 			return &pb.ShareReply{Error: pb.StoreProviderError_OK, PubShare: pubShare}, nil
 		} else if err == store.ErrorIdx {
 			return &pb.ShareReply{Error: pb.StoreProviderError_INDEX}, nil
+		} else if err == store.ItemNotFound {
+			return &pb.ShareReply{Error: pb.StoreProviderError_ITEM_NOT_FOUND}, nil
 		} else {
 			return nil, err // Unexpected error!
 		}
@@ -86,7 +88,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	table := new(pb.StoreTable)
+	table := new(pb.Store)
 	if err = proto.Unmarshal(tableString, table); err != nil {
 		log.Fatal("failed to parse protobuf: ", err)
 	}

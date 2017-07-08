@@ -37,16 +37,17 @@ message Store {
 }
 
 // Errors output by the remote procedure calls.
-enum DictProviderError {
+enum StoreProviderError {
   OK = 0;
   BAD_USER = 1;
   INDEX = 2;
+  ITEM_NOT_FOUND = 3;
 }
 
-// Definition for the storage provider storage. The DictProvider stores a map
+// Definition for the storage provider storage. The StoreProvider stores a map
 // from user IDs to his/her public store. This service permits the client to get
-// the parameters with the PubDict and to request shares.
-service DictProvider {
+// the parameters with the PubStore and to request shares.
+service StoreProvider {
   rpc GetShare (ShareRequest) returns (ShareReply) {}
   rpc GetParams (ParamsRequest) returns (ParamsReply) {}
 }
@@ -61,7 +62,7 @@ message ShareRequest {
 // The share response message.
 message ShareReply {
   bytes pub_share = 1;
-  DictProviderError error = 2;
+  StoreProviderError error = 2;
 }
 
 // The parameters request message.
@@ -72,5 +73,5 @@ message ParamsRequest {
 // The parameters response message.
 message ParamsReply {
   Params params = 1;
-  DictProviderError error = 2;
+  StoreProviderError error = 2;
 }

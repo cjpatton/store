@@ -12,7 +12,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/cjpatton/store"
 	"github.com/cjpatton/store/pb"
@@ -24,7 +23,7 @@ import (
 const (
 	address  = "localhost:50051"
 	greeting = "---- Hadee ----------------------------------------------------\n" +
-		"Welcome to Hadee, an excellent source of password suggestions."
+		"Welcome to Hadee, your super secret data store."
 )
 
 func main() {
@@ -73,8 +72,8 @@ func main() {
 	defer priv.Free()
 
 	bio := bufio.NewReader(os.Stdin)
-	fmt.Println("\nEnter the name of a website and we'll tell you your user name")
-	fmt.Println("and password. Type \"quit\" to leave.")
+	fmt.Println("\nEnter an input and we'll give you the output. Type \"ls\" to")
+	fmt.Println("see the list of inputs. Type \"quit\" to leave.")
 	fmt.Println("---------------------------------------------------------------")
 
 	for {
@@ -110,20 +109,14 @@ func main() {
 			return
 		}
 
-		out, err := priv.GetValue(in, shareReply.GetPubShare())
+		out, err := priv.GetOutput(in, shareReply.GetPubShare())
 		if err == store.ItemNotFound {
-			fmt.Println("Site does not exist or you entered the wrong master password.")
+			fmt.Println("Item not found. (Wrong master password?)")
 		} else if err != nil {
 			fmt.Println("priv.GetValue() fails:", err)
 			return
 		} else {
-			outs := strings.SplitN(out, ";", 2)
-			if len(outs) != 2 {
-				fmt.Printf("Huh ... the credentials were not properly formatted. Here's what we got: %q\n", out)
-			} else {
-				fmt.Println("User name:", outs[0])
-				fmt.Println("Pqssword: ", outs[1])
-			}
+			fmt.Println(out)
 		}
 	}
 }
