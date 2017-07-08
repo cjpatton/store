@@ -2,6 +2,8 @@ package store
 
 import (
 	"testing"
+
+	"encoding/binary"
 )
 
 func TestNewStore(t *testing.T) {
@@ -107,4 +109,51 @@ func TestNewPrivStore(t *testing.T) {
 	output1 := priv1.aead.Seal(nil, nonce, []byte(testInput), nil)
 	output2 := priv2.aead.Seal(nil, nonce, []byte(testInput), nil)
 	AssertStringEqError(t, "output1", string(output1), string(output2))
+}
+
+// Evaluate how frequently pub.GetShare() returns a ciphertext on an incorrect
+// query. On this small test, It appears to do so about 10% of the time.
+func TestBadGetShare(t *testing.T) {
+	K := GenerateKey()
+	M := map[string]string{
+		"This":             "is pretty cool, I think.",
+		"It":               "is basically a mechanism for searchable encryption.",
+		"I wonder":         "if anyone will use it?",
+		"If they don't":    "I will",
+		"You can use it":   "to store a bunch of files in an immutable fashion.",
+		"The graph":        "is kept around for two reason: (1) to make it so the sealed output can be fetched in one round of communication",
+		"and (2)":          "So that the sealed outputs can be modified.",
+		"This would mean":  "That the AEAD needs to be nonce misuse resistant, since we're using the same nonce to store a different message",
+		"I'll think about": "all these things moving forward. This has",
+		"been":             "fun!",
+	}
+
+	pub, priv, err := NewStore(K, M)
+	if err != nil {
+		t.Fatal("NewStore() fails:", err)
+	}
+	defer pub.Free()
+	defer priv.Free()
+	t.Log(pub.String())
+
+	trials := 1000
+	ct := 0
+	badInput := make([]byte, 4)
+	for trial := 0; trial < trials; trial++ {
+		binary.LittleEndian.PutUint32(badInput, uint32(trial))
+		x, y, err := priv.GetIdx(string(badInput))
+		if err != nil {
+			t.Error("priv.GetIdx() fails:", err)
+			return
+		}
+
+		_, err = pub.GetShare(x, y)
+		if err == nil {
+			ct++
+		} else if err != ItemNotFound {
+			t.Error("pub.GetShare() fails:", err)
+			return
+		}
+	}
+	t.Logf("%d / %d", ct, trials)
 }

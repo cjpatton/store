@@ -1,12 +1,5 @@
 package store
 
-// TODO Clean up documentation.
-// TODO The protocol could be modified so that the client checks if its query
-// is in the set before actually requesting it from the server. I should
-// evaluate experimentally how frequently the server ends up sending a
-// ciphertext needless for an incorrect query.
-// TODO Should Store and Dict implement the same interface?
-
 import (
 	"crypto/aes"
 	"crypto/cipher"
