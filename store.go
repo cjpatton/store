@@ -1,10 +1,16 @@
 package store
 
+// TODO The protocol could be modified so that the client checks if its query
+// is in the set before actually requesting it from the server. I should
+// evaluate experimentally how frequently the server ends up sending a
+// ciphertext needless for an incorrect query.
+
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -14,6 +20,8 @@ import (
 
 const SealKeyBytes = 16
 const KeyBytes = DictKeyBytes + SealKeyBytes
+
+const ErrorMapTooLarge = Error("input map is too large")
 
 // GenerateKey generates a fresh, random key and returns it.
 func GenerateKey() []byte {
@@ -37,6 +45,7 @@ func DeriveKeyFromPassword(password, salt []byte) []byte {
 
 type PubStore struct {
 	dict   *PubDict
+	nonce  []byte
 	sealed [][]byte
 	graph  Graph
 }
@@ -54,6 +63,7 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	pub := new(PubStore)
 	priv := new(PrivStore)
 
+	// Set up context for AEAD.
 	block, err := aes.NewCipher(K[:DictKeyBytes])
 	if err != nil {
 		return nil, nil, err
@@ -63,28 +73,40 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 		return nil, nil, err
 	}
 
-	cN := cM.getNonceMap(priv.aead.NonceSize())
-	if cN == nil {
-		return nil, nil, Error("hella") // FIXME
+	// AEAD nonce is the dictionary salt plus a counter.
+	//
+	// Compute the number of bytes of the nonce allocated for the counter and
+	// ensure that it is long enough to uniquely encode each input/output pair
+	// in the map.
+	ctrBytes := priv.aead.NonceSize() - SaltBytes
+	if len(M) > (1 << (8 * uint(ctrBytes))) {
+		return nil, nil, ErrorMapTooLarge
 	}
+
+	// Create a *cMap for inputs to counters. This is what will actually be
+	// stored by pub.dict.
+	cN := cM.getCtrMap(ctrBytes)
 	defer cN.free()
 
-	pub.sealed = make([][]byte, len(M))
-	for i := 0; i < len(M); i++ {
-		// TODO M and A copied twice unnecessarily
-		cNonce, cNonceBytes := cN.getOutput(i)
-		cMessage, cMessageBytes := cM.getOutput(i)
-		cAssociatedData, cAssociatedDataBytes := cM.getInput(i)
-		N := cBytesToBytes(cNonce, cNonceBytes)
-		M := cBytesToBytes(cMessage, cMessageBytes)
-		A := cBytesToBytes(cAssociatedData, cAssociatedDataBytes)
-		pub.sealed[i] = priv.aead.Seal(nil, N, M, A)
-	}
-
+	// Construct the graph.
 	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(
 		K[DictKeyBytes:], cN, 0, false)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Encrypt each output and store in pub.sealed.
+	nonce := cBytesToBytes(priv.dict.params.salt, priv.dict.params.salt_bytes)
+	ctr := make([]byte, ctrBytes)
+	pub.sealed = make([][]byte, len(M))
+	for i := 0; i < len(M); i++ {
+		// TODO M and A copied twice unnecessarily
+		cMessage, cMessageBytes := cM.getOutput(i)
+		cAssociatedData, cAssociatedDataBytes := cM.getInput(i)
+		M := cBytesToBytes(cMessage, cMessageBytes)
+		A := cBytesToBytes(cAssociatedData, cAssociatedDataBytes)
+		binary.LittleEndian.PutUint32(ctr, uint32(i))
+		pub.sealed[i] = priv.aead.Seal(nil, append(nonce, ctr...), M, A)
 	}
 
 	return pub, priv, nil
@@ -96,8 +118,8 @@ func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 
 func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 
-	// Get nonce share.
-	nonceShare, err := pub.dict.GetShare(x, y)
+	// Get counter share.
+	ctrShare, err := pub.dict.GetShare(x, y)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +129,7 @@ func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 		e := pub.graph[x][i]
 		for j := 0; j < len(pub.graph[y]); j++ {
 			if pub.graph[y][j] == e {
-				return append(nonceShare, pub.sealed[e]...), nil
+				return append(ctrShare, pub.sealed[e]...), nil
 			}
 		}
 	}
@@ -116,13 +138,15 @@ func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 }
 
 func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) {
-	nonceShareBytes := priv.dict.params.row_bytes
-	nonce, err := priv.dict.GetOutput(input, pubShare[:nonceShareBytes])
+	ctrShareBytes := priv.dict.params.row_bytes
+	ctr, err := priv.dict.GetOutput(input, pubShare[:ctrShareBytes])
 	if err != nil {
 		return "", err
 	}
+
+	nonce := cBytesToBytes(priv.dict.params.salt, priv.dict.params.salt_bytes)
 	output, err := priv.aead.Open(
-		nil, []byte(nonce), pubShare[nonceShareBytes:], []byte(input))
+		nil, append(nonce, []byte(ctr)...), pubShare[ctrShareBytes:], []byte(input))
 	if err != nil {
 		return "", ItemNotFound
 	}

@@ -5,6 +5,7 @@ package store
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"unsafe"
@@ -184,7 +185,14 @@ func (cM *cMap) getInput(i int) (*C.char, C.int) {
 // getInput returns a pointer to the i-th output, as well as its length.
 func (cM *cMap) getOutput(i int) (*C.char, C.int) {
 	idx := C.int(i)
-	return C.get_str_list(cM.outputs, idx), C.get_int_list(cM.outputBytes, idx)
+	output := C.get_str_list(cM.outputs, idx)
+	var outputBytes C.int
+	if cM.outputBytes != nil {
+		outputBytes = C.get_int_list(cM.outputBytes, idx)
+	} else {
+		outputBytes = cM.maxOutputBytes
+	}
+	return output, outputBytes
 }
 
 // free() frees memory allocated to cM.
@@ -194,32 +202,28 @@ func (cM *cMap) free() {
 		C.free_int_list(cM.inputBytes)
 	}
 	C.free_str_list(cM.outputs, cM.itemCt)
-	C.free_int_list(cM.outputBytes)
+	if cM.outputBytes != nil { // Ctr map does not set this variable.
+		C.free_int_list(cM.outputBytes)
+	}
 }
 
-// getNonceMap returns a *cMap mapping each input of cM to a fresh nonce.
+// getCtrMap returns a *cMap mapping each input of cM to a fresh nonce.
 //
 // Must free with cN.free().
-func (cM *cMap) getNonceMap(nonceBytes int) (cN *cMap) {
+func (cM *cMap) getCtrMap(ctrBytes int) (cN *cMap) {
 	cN = new(cMap)
 	cN.itemCt = cM.itemCt
-	cN.maxOutputBytes = C.int(nonceBytes)
+	cN.maxOutputBytes = C.int(ctrBytes)
 	cN.inputs = cM.inputs
 	cN.inputBytes = cM.inputBytes
 	cN.freeInputs = false // The inputs are shallow copied.
 	cN.outputs = C.new_str_list(cN.itemCt)
-	cN.outputBytes = C.new_int_list(cN.itemCt)
+	cN.outputBytes = nil
 
-	nonce := make([]byte, nonceBytes)
-	for i := C.int(0); i < cN.itemCt; i++ {
-		// TODO random initial nonce, then count
-		_, err := rand.Read(nonce)
-		if err != nil {
-			cN.free()
-			return nil
-		}
-		C.set_str_list(cN.outputs, C.int(i), C.CString(string(nonce)))
-		C.set_int_list(cN.outputBytes, C.int(i), C.int(len(nonce)))
+	ctr := make([]byte, ctrBytes)
+	for i := uint32(0); i < uint32(cN.itemCt); i++ {
+		binary.LittleEndian.PutUint32(ctr, i)
+		C.set_str_list(cN.outputs, C.int(i), C.CString(string(ctr)))
 	}
 	return cN
 }
