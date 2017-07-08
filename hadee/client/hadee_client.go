@@ -23,7 +23,7 @@ import (
 const (
 	address  = "localhost:50051"
 	greeting = "---- Hadee ----------------------------------------------------\n" +
-		"Welcome to Hadee, your super secret data store."
+		"Welcome to Hadee, your super secret source of dog jokes."
 )
 
 func main() {
@@ -104,6 +104,9 @@ func main() {
 		if err != nil {
 			fmt.Println("ShareRequest fails:", err)
 			return
+		} else if shareReply.GetError() == pb.StoreProviderError_ITEM_NOT_FOUND {
+			fmt.Println("Server says item not found. (Wrong master password?)")
+			continue
 		} else if shareReply.GetError() != pb.StoreProviderError_OK {
 			fmt.Println("ShareRequest fails:", shareReply.GetError())
 			return
