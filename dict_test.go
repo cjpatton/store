@@ -25,6 +25,7 @@ var badM = map[string]string{
 }
 
 // TODO Does testing have these sorts of functions already?
+// FIXME "go test" error message points to this function.
 func AssertInt32EqError(t *testing.T, name string, got, exp int32) {
 	if got != exp {
 		t.Errorf("%s = %d, expected %d", name, got, exp)
@@ -112,8 +113,8 @@ func TestGetParams(t *testing.T) {
 	}
 	AssertInt32EqError(t, "pub.GetParams(): params.TableLen", params.GetTableLen(), 9)
 	AssertInt32EqError(t, "pub.GetParams(): params.MaxOutputBytes", params.GetMaxOutputBytes(), 5)
-	AssertInt32EqError(t, "pub.GetParams(): params.TagBytes", params.GetTagBytes(), 3)
-	AssertInt32EqError(t, "pub.GetParams(): params.RowBytes", params.GetRowBytes(), 9)
+	AssertInt32EqError(t, "pub.GetParams(): params.TagBytes", params.GetTagBytes(), 2)
+	AssertInt32EqError(t, "pub.GetParams(): params.RowBytes", params.GetRowBytes(), 8)
 	AssertIntEqError(t, "pub.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 
 	params = priv.GetParams()
@@ -122,8 +123,8 @@ func TestGetParams(t *testing.T) {
 	}
 	AssertInt32EqError(t, "priv.GetParams(): params.TableLen", params.GetTableLen(), 9)
 	AssertInt32EqError(t, "priv.GetParams(): params.MaxOutputBytes", params.GetMaxOutputBytes(), 5)
-	AssertInt32EqError(t, "priv.GetParams(): params.TagBytes", params.GetTagBytes(), 3)
-	AssertInt32EqError(t, "priv.GetParams(): params.RowBytes", params.GetRowBytes(), 9)
+	AssertInt32EqError(t, "priv.GetParams(): params.TagBytes", params.GetTagBytes(), 2)
+	AssertInt32EqError(t, "priv.GetParams(): params.RowBytes", params.GetRowBytes(), 8)
 	AssertIntEqError(t, "priv.GetParams(): len(params.Salt)", len(params.Salt), SaltBytes)
 }
 

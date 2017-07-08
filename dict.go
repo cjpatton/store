@@ -79,7 +79,7 @@ import "C"
 const SaltBytes = 8
 
 // Number of row bytes allocated for the tag.
-const TagBytes = 3
+const TagBytes = 2
 
 // The maximum length of the row. In general, the length of the row depends on
 // the length of the longest output in the map. HASH_BYTES is defined in
