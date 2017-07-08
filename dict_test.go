@@ -138,18 +138,18 @@ func TestGet(t *testing.T) {
 	defer priv.Free()
 
 	badInput := "tragically"
-	output, err := Get(pub, priv, badInput)
+	output, err := priv.Get(pub, badInput)
 	if err != ItemNotFound {
-		t.Error("st.Get(badInput) succeeded, expected error")
+		t.Error("priv.Get(pub, badInput) succeeded, expected error")
 	}
 
 	goodInput := "hip"
 	expectedOutput := "pizza"
-	output, err = Get(pub, priv, goodInput)
+	output, err = priv.Get(pub, goodInput)
 	if err != nil {
-		t.Error("st.Get(goodInput) erred, expected success")
+		t.Error("priv.Get(pub, goodInput) erred, expected success")
 	} else if output != expectedOutput {
-		t.Error("st.get(goodInput) = %q, expected %q", output, expectedOutput)
+		t.Error("priv.Get(pub, goodInput) = %q, expected %q", output, expectedOutput)
 	}
 }
 
@@ -197,10 +197,10 @@ func TestNewPubDictFromProto(t *testing.T) {
 	AssertStringEqError(t, "pub2.String()", pub2.String(), pub.String())
 
 	for in, val := range goodM {
-		out2, err := Get(pub2, priv, in)
+		out2, err := priv.Get(pub2, in)
 		if err != nil {
-			t.Fatalf("Get(pub2, priv, %q) fails: %s", in, err)
+			t.Fatalf("priv.Get(pub2, %q) fails: %s", in, err)
 		}
-		AssertStringEqError(t, fmt.Sprintf("Get(pub2, priv, %q)", in), out2, val)
+		AssertStringEqError(t, fmt.Sprintf("priv.Get(pub2, %q)", in), out2, val)
 	}
 }

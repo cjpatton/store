@@ -1,3 +1,6 @@
+// Copyright (c) 2017, Christopher Patton
+// All rights reserved.
+
 package store
 
 import (
@@ -13,9 +16,14 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+// Length of key for sealing the outputs. (AEAD is AES128-GCM.)
 const SealKeyBytes = 16
+
+// Length of the store key.
 const KeyBytes = DictKeyBytes + SealKeyBytes
 
+// Returned by NewStore() in case the number of elements in the input exceeds
+// the number of bytes of the counter.
 const ErrorMapTooLarge = Error("input map is too large")
 
 // GenerateKey generates a fresh, random key and returns it.
@@ -38,22 +46,28 @@ func DeriveKeyFromPassword(password, salt []byte) []byte {
 	return pbkdf2.Key(password, salt, 4096, KeyBytes, sha256.New)
 }
 
+// Store the public representation of the map.
 type PubStore struct {
 	dict   *PubDict
-	nonce  []byte
 	sealed [][]byte
 	graph  Graph
 }
 
+// Stores the private context used to query the map.
 type PrivStore struct {
 	dict *PrivDict
 	aead cipher.AEAD
 }
 
-func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
+// NewStore creates a new store for key K and map M.
+//
+// You must call pub.Free() and priv.Free() before these variables go out of
+// scope. This is necessary because these structures contain memory allocated
+// from the heap in C.
+func NewStore(K []byte, M map[string]string) (pub *PubStore, priv *PrivStore, err error) {
 
-	pub := new(PubStore)
-	priv := new(PrivStore)
+	pub = new(PubStore)
+	priv = new(PrivStore)
 
 	// Set up context for AEAD.
 	block, err := aes.NewCipher(K[:DictKeyBytes])
@@ -109,18 +123,22 @@ func NewStore(K []byte, M map[string]string) (*PubStore, *PrivStore, error) {
 	return pub, priv, nil
 }
 
+// GetIdx computes the index corresponding to the input.
 func (priv *PrivStore) GetIdx(input string) (int, int, error) {
 	return priv.dict.GetIdx(input)
 }
 
+// GetShare computes the pubShare corresponding to the index (x, y).
+//
+// The payload is comprised of the public share of the dictionary table and the
+// sealed output corresponding to the share. This function returns ItemNotFound
+// if there is no such sealed output.
 func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
-
 	// Get counter share.
 	ctrShare, err := pub.dict.GetShare(x, y)
 	if err != nil {
 		return nil, err
 	}
-
 	// Look up sealed output.
 	for i := 0; i < len(pub.graph[x]); i++ {
 		e := pub.graph[x][i]
@@ -130,10 +148,14 @@ func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 			}
 		}
 	}
-
 	return nil, ItemNotFound
 }
 
+// GetOutput computes the final output from input and the public share.
+//
+// The nonce is the constructed from combining the table public share with the
+// private share and concatenating the result to the salt. The associated data
+// is the input. Returns ItemNotFound if unsealing the output fails.
 func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) {
 	ctrShareBytes := priv.dict.params.row_bytes
 	ctr, err := priv.dict.GetOutput(input, pubShare[:ctrShareBytes])
@@ -150,16 +172,37 @@ func (priv *PrivStore) GetOutput(input string, pubShare []byte) (string, error) 
 	return string(output), nil
 }
 
+// Get looks up input in the public store and returns the result.
+func (priv *PrivStore) Get(pub *PubStore, input string) (string, error) {
+	x, y, err := priv.GetIdx(input)
+	if err != nil {
+		return "", err
+	}
+
+	pubShare, err := pub.GetShare(x, y)
+	if err != nil {
+		return "", err
+	}
+
+	return priv.GetOutput(input, pubShare)
+}
+
+// Free releases memory allocated to the public store's internal representation.
 func (pub *PubStore) Free() {
 	pub.dict.Free()
 }
 
+// Free releases memory allocated to the private context's internal
+// representation.
 func (priv *PrivStore) Free() {
 	priv.dict.Free()
 }
 
-func NewPubStoreFromProto(table *pb.Store) *PubStore {
-	pub := new(PubStore)
+// NewPubStoreFromProto creates a public store from its protobuf representation.
+//
+// You must call pub.Free() before pub goes out of scope.
+func NewPubStoreFromProto(table *pb.Store) (pub *PubStore) {
+	pub = new(PubStore)
 	pub.dict = NewPubDictFromProto(table.GetDict())
 	pub.sealed = table.GetSealed()
 	pub.graph = make(Graph, table.GetNodeCt())
@@ -169,6 +212,9 @@ func NewPubStoreFromProto(table *pb.Store) *PubStore {
 	return pub
 }
 
+// GetProto creates a protobuf representation of the public store.
+//
+// This is a compact representation suitable for transmission.
 func (pub *PubStore) GetProto() *pb.Store {
 	adjList := make([]*pb.Store_AdjList, 0)
 	node := make([]int32, 0)
@@ -188,6 +234,7 @@ func (pub *PubStore) GetProto() *pb.Store {
 	}
 }
 
+// String returns a string representing the public storage.
 func (pub *PubStore) String() string {
 	str := pub.dict.String()
 	for i := 0; i < len(pub.sealed); i++ {
@@ -196,8 +243,11 @@ func (pub *PubStore) String() string {
 	return str
 }
 
-func NewPrivStore(K []byte, params *pb.Params) (*PrivStore, error) {
-	priv := new(PrivStore)
+// NewPrivStore creates a new private store context from a key and parameters.
+//
+// You must call priv.Free() before priv goes out of scope.
+func NewPrivStore(K []byte, params *pb.Params) (priv *PrivStore, err error) {
+	priv = new(PrivStore)
 
 	block, err := aes.NewCipher(K[:DictKeyBytes])
 	if err != nil {
@@ -215,6 +265,7 @@ func NewPrivStore(K []byte, params *pb.Params) (*PrivStore, error) {
 	return priv, nil
 }
 
+// GetParams returns the public parameters of the store.
 func (priv *PrivStore) GetParams() *pb.Params {
 	return priv.dict.GetParams()
 }

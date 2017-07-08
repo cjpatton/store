@@ -65,14 +65,14 @@ func ExampleGet() {
 	defer pub.Free()
 	defer priv.Free()
 
-	out, err := Get(pub, priv, "Out")
+	out, err := priv.Get(pub, "Out")
 	if err != nil {
 		fmt.Println("Get() error:", err)
 		return
 	}
 	fmt.Println(out)
 
-	out, err = Get(pub, priv, "Evil input")
+	out, err = priv.Get(pub, "Evil input")
 	if err != nil {
 		fmt.Println("Get() error:", err)
 		return

@@ -133,74 +133,8 @@ type PrivDict struct {
 	cZeroShare *C.char
 }
 
+// An undirected graph stored as an adjacency list.
 type Graph [][]int32
-
-// Storage of map[string]string for processing with the C code.
-type cMap struct {
-	itemCt, maxOutputBytes  C.int
-	inputs, outputs         **C.char
-	inputBytes, outputBytes *C.int
-}
-
-// newCMap constructs a new *cMap from a Go map.
-//
-// This must be freed with cM.free().
-func newCMap(M map[string]string) (cM *cMap) {
-	cM = new(cMap)
-	cM.itemCt = C.int(len(M))
-	cM.inputs = C.new_str_list(cM.itemCt)
-	cM.inputBytes = C.new_int_list(cM.itemCt)
-	cM.outputs = C.new_str_list(cM.itemCt)
-	cM.outputBytes = C.new_int_list(cM.itemCt)
-	cM.maxOutputBytes = C.int(0)
-	i := 0
-	// NOTE Go does not guarantee that the map will be traversed in the same
-	// order each time.
-	for in, out := range M {
-		if C.int(len(out)) > cM.maxOutputBytes {
-			cM.maxOutputBytes = C.int(len(out))
-		}
-		// NOTE C.CString() copies all the bytes of its input, even if it
-		// encounters a null byte.
-		C.set_str_list(cM.inputs, C.int(i), C.CString(in))
-		C.set_int_list(cM.inputBytes, C.int(i), C.int(len(in)))
-		C.set_str_list(cM.outputs, C.int(i), C.CString(out))
-		C.set_int_list(cM.outputBytes, C.int(i), C.int(len(out)))
-		i++
-	}
-	return cM
-}
-
-// getCtrCMap returns a *cMap mapping each input of to a fresh nonce.
-//
-// Must free with cN.free().
-func newCtrCMap(inputs [][]byte, ctrBytes int) (cM *cMap) {
-	cM = new(cMap)
-	cM.itemCt = C.int(len(inputs))
-	cM.inputs = C.new_str_list(cM.itemCt)
-	cM.inputBytes = C.new_int_list(cM.itemCt)
-	cM.outputs = C.new_str_list(cM.itemCt)
-	cM.outputBytes = nil
-	cM.maxOutputBytes = C.int(ctrBytes)
-	ctr := make([]byte, ctrBytes)
-	for i := C.int(0); i < cM.itemCt; i++ {
-		C.set_str_list(cM.inputs, i, (*C.char)(C.CBytes(inputs[i])))
-		C.set_int_list(cM.inputBytes, i, C.int(len(inputs[i])))
-		binary.LittleEndian.PutUint32(ctr, uint32(i))
-		C.set_str_list(cM.outputs, i, (*C.char)(C.CBytes(ctr)))
-	}
-	return cM
-}
-
-// free() frees memory allocated to cM.
-func (cM *cMap) free() {
-	C.free_str_list(cM.inputs, cM.itemCt)
-	C.free_int_list(cM.inputBytes)
-	C.free_str_list(cM.outputs, cM.itemCt)
-	if cM.outputBytes != nil { // Ctr map does not set this variable.
-		C.free_int_list(cM.outputBytes)
-	}
-}
 
 // New generates a new structure (pub, priv) for the map M and key K.
 //
@@ -221,67 +155,6 @@ func NewDict(K []byte, M map[string]string) (*PubDict, *PrivDict, error) {
 		return nil, nil, err
 	}
 	return pub, priv, nil
-}
-
-func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *PrivDict, Graph, error) {
-
-	pub := new(PubDict)
-
-	// Allocate a new dictionary object.
-	tableLen := C.dict_compute_table_length(cM.itemCt)
-	var cPad C.int
-	if pad {
-		cPad = C.int(1)
-	} else {
-		cPad = C.int(0)
-	}
-	pub.dict = C.dict_new(
-		tableLen,
-		cM.maxOutputBytes,
-		C.int(tagBytes),
-		C.int(SaltBytes),
-		cPad)
-	if pub.dict == nil {
-		return nil, nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
-	}
-
-	params := cParamsToParams(&pub.dict.params)
-
-	// Create priv.
-	//
-	// NOTE dict.salt is not set, and so priv.params.salt is not set. It's
-	// necessary to set it after calling C.dict_create().
-	priv, err := NewPrivDict(K, params)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Create the dictionary.
-	var errNo C.int
-	cGraph := C.dict_create_and_output_graph(
-		pub.dict, priv.tinyCtx, cM.inputs, cM.inputBytes, cM.outputs, cM.outputBytes, cM.itemCt, &errNo)
-	if errNo != C.OK {
-		priv.Free()
-		return nil, nil, nil, cError("dict_create_and_output_graph", errNo)
-	}
-	defer C.graph_free(cGraph)
-
-	// Copy salt to priv.params.
-	C.memcpy(unsafe.Pointer(priv.params.salt),
-		unsafe.Pointer(pub.dict.params.salt),
-		C.size_t(priv.params.salt_bytes))
-
-	// Save adjcency list.
-	graph := make([][]int32, int32(cGraph.node_ct))
-	for i := C.int(0); i < cGraph.node_ct; i++ {
-		cAdjCt := C.get_node(cGraph, i).adj_ct
-		graph[i] = make([]int32, int32(cAdjCt))
-		for j := C.int(0); j < cAdjCt; j++ {
-			graph[i][j] = int32(C.get_edge(cGraph, i, j))
-		}
-	}
-
-	return pub, priv, graph, nil
 }
 
 // NewPubDictFromProto creates a new *PubDict from a *pb.Dict.
@@ -310,24 +183,6 @@ func NewPubDictFromProto(table *pb.Dict) *PubDict {
 	}
 
 	return pub
-}
-
-// Get queries input on the structure (pub, priv). The result is M[input] =
-// output, where M is the map represented by (pub, priv).
-func Get(pub *PubDict, priv *PrivDict, input string) (string, error) {
-	cInput := C.CString(input)
-	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
-	cOutputBytes := C.int(0)
-	defer C.free(unsafe.Pointer(cInput))
-	defer C.free(unsafe.Pointer(cOutput))
-	errNo := C.dict_get(
-		pub.dict, priv.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
-	if errNo == C.ERR_DICT_BAD_KEY {
-		return "", ItemNotFound
-	} else if errNo != C.OK {
-		return "", cError("cdict_get", errNo)
-	}
-	return C.GoStringN(cOutput, cOutputBytes), nil
 }
 
 // GetShare returns the bitwise-XOR of the x-th and y-th rows of the table.
@@ -419,6 +274,24 @@ func NewPrivDict(K []byte, params *pb.Params) (*PrivDict, error) {
 	return priv, nil
 }
 
+// Get queries input on the structure (pub, priv). The result is M[input] =
+// output, where M is the map represented by (pub, priv).
+func (priv *PrivDict) Get(pub *PubDict, input string) (string, error) {
+	cInput := C.CString(input)
+	cOutput := C.CString(string(make([]byte, pub.dict.params.max_value_bytes)))
+	cOutputBytes := C.int(0)
+	defer C.free(unsafe.Pointer(cInput))
+	defer C.free(unsafe.Pointer(cOutput))
+	errNo := C.dict_get(
+		pub.dict, priv.tinyCtx, cInput, C.int(len(input)), cOutput, &cOutputBytes)
+	if errNo == C.ERR_DICT_BAD_KEY {
+		return "", ItemNotFound
+	} else if errNo != C.OK {
+		return "", cError("cdict_get", errNo)
+	}
+	return C.GoStringN(cOutput, cOutputBytes), nil
+}
+
 // GetIdx computes the two indices of the table associated with input and
 // returns them.
 func (priv *PrivDict) GetIdx(input string) (int, int, error) {
@@ -466,6 +339,73 @@ func (priv *PrivDict) Free() {
 	C.free(unsafe.Pointer(priv.params.salt))
 	C.free(unsafe.Pointer(priv.cZeroShare))
 	C.tinyprf_free(priv.tinyCtx)
+}
+
+// Storage of map[string]string for processing with the C code.
+type cMap struct {
+	itemCt, maxOutputBytes  C.int
+	inputs, outputs         **C.char
+	inputBytes, outputBytes *C.int
+}
+
+// newCMap constructs a new *cMap from a Go map.
+//
+// This must be freed with cM.free().
+func newCMap(M map[string]string) (cM *cMap) {
+	cM = new(cMap)
+	cM.itemCt = C.int(len(M))
+	cM.inputs = C.new_str_list(cM.itemCt)
+	cM.inputBytes = C.new_int_list(cM.itemCt)
+	cM.outputs = C.new_str_list(cM.itemCt)
+	cM.outputBytes = C.new_int_list(cM.itemCt)
+	cM.maxOutputBytes = C.int(0)
+	i := 0
+	// NOTE Go does not guarantee that the map will be traversed in the same
+	// order each time.
+	for in, out := range M {
+		if C.int(len(out)) > cM.maxOutputBytes {
+			cM.maxOutputBytes = C.int(len(out))
+		}
+		// NOTE C.CString() copies all the bytes of its input, even if it
+		// encounters a null byte.
+		C.set_str_list(cM.inputs, C.int(i), C.CString(in))
+		C.set_int_list(cM.inputBytes, C.int(i), C.int(len(in)))
+		C.set_str_list(cM.outputs, C.int(i), C.CString(out))
+		C.set_int_list(cM.outputBytes, C.int(i), C.int(len(out)))
+		i++
+	}
+	return cM
+}
+
+// getCtrCMap returns a *cMap mapping each input of to a fresh nonce.
+//
+// Must free with cN.free().
+func newCtrCMap(inputs [][]byte, ctrBytes int) (cM *cMap) {
+	cM = new(cMap)
+	cM.itemCt = C.int(len(inputs))
+	cM.inputs = C.new_str_list(cM.itemCt)
+	cM.inputBytes = C.new_int_list(cM.itemCt)
+	cM.outputs = C.new_str_list(cM.itemCt)
+	cM.outputBytes = nil
+	cM.maxOutputBytes = C.int(ctrBytes)
+	ctr := make([]byte, ctrBytes)
+	for i := C.int(0); i < cM.itemCt; i++ {
+		C.set_str_list(cM.inputs, i, (*C.char)(C.CBytes(inputs[i])))
+		C.set_int_list(cM.inputBytes, i, C.int(len(inputs[i])))
+		binary.LittleEndian.PutUint32(ctr, uint32(i))
+		C.set_str_list(cM.outputs, i, (*C.char)(C.CBytes(ctr)))
+	}
+	return cM
+}
+
+// free() frees memory allocated to cM.
+func (cM *cMap) free() {
+	C.free_str_list(cM.inputs, cM.itemCt)
+	C.free_int_list(cM.inputBytes)
+	C.free_str_list(cM.outputs, cM.itemCt)
+	if cM.outputBytes != nil { // Ctr map does not set this variable.
+		C.free_int_list(cM.outputBytes)
+	}
 }
 
 // cBytesToString maps a *C.char to a []byte.
@@ -523,4 +463,65 @@ func setCParamsFromParams(cParams *C.dict_params_t, params *pb.Params) {
 func getRow(table *C.char, idx, rowBytes C.int) []byte {
 	rowPtr := C.get_row_ptr(table, idx, rowBytes)
 	return C.GoBytes(unsafe.Pointer(rowPtr), rowBytes)
+}
+
+// newDictAndGraph constructs a new dictionary and returns the generated graph.
+func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *PrivDict, Graph, error) {
+	pub := new(PubDict)
+
+	// Allocate a new dictionary object.
+	tableLen := C.dict_compute_table_length(cM.itemCt)
+	var cPad C.int
+	if pad {
+		cPad = C.int(1)
+	} else {
+		cPad = C.int(0)
+	}
+	pub.dict = C.dict_new(
+		tableLen,
+		cM.maxOutputBytes,
+		C.int(tagBytes),
+		C.int(SaltBytes),
+		cPad)
+	if pub.dict == nil {
+		return nil, nil, nil, Error(fmt.Sprintf("maxOutputBytes > %d", MaxOutputBytes))
+	}
+
+	params := cParamsToParams(&pub.dict.params)
+
+	// Create priv.
+	//
+	// NOTE dict.salt is not set, and so priv.params.salt is not set. It's
+	// necessary to set it after calling C.dict_create().
+	priv, err := NewPrivDict(K, params)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Create the dictionary.
+	var errNo C.int
+	cGraph := C.dict_create_and_output_graph(
+		pub.dict, priv.tinyCtx, cM.inputs, cM.inputBytes, cM.outputs, cM.outputBytes, cM.itemCt, &errNo)
+	if errNo != C.OK {
+		priv.Free()
+		return nil, nil, nil, cError("dict_create_and_output_graph", errNo)
+	}
+	defer C.graph_free(cGraph)
+
+	// Copy salt to priv.params.
+	C.memcpy(unsafe.Pointer(priv.params.salt),
+		unsafe.Pointer(pub.dict.params.salt),
+		C.size_t(priv.params.salt_bytes))
+
+	// Save adjcency list.
+	graph := make([][]int32, int32(cGraph.node_ct))
+	for i := C.int(0); i < cGraph.node_ct; i++ {
+		cAdjCt := C.get_node(cGraph, i).adj_ct
+		graph[i] = make([]int32, int32(cAdjCt))
+		for j := C.int(0); j < cAdjCt; j++ {
+			graph[i][j] = int32(C.get_edge(cGraph, i, j))
+		}
+	}
+
+	return pub, priv, graph, nil
 }
