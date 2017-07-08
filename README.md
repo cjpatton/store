@@ -3,7 +3,7 @@ Secure Go maps
 
 **TODO(cjpatton)** Update documentation.
 
-This package provides private storage of Go's `map[string]string` objects. The
+This package provides secure storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
 protocols where the service is trusted to provide storage, but is otherwise
@@ -12,14 +12,8 @@ untrusted.
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
 
-![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **NON GOALS:** This
-package provides _private_ storage of maps, but does not provide _integrity_.
-Said another way, there's no way to detect if the service provider has
-manipulated the contents of the map. Doing so, however, does not compromise
-privacy.
-
 ![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **DISCLAIMER:** This
-code is related to a research paper currently in submission.  The underlying
+code is related to a research paper currently in submission. The underlying
 cryptographic mechanism still needs a formal proof.
 
 Package `store`
@@ -36,8 +30,9 @@ To compute `M[input]`, the client executes:
 x, y, err := priv.GetIdx(input)
 ```
 
-and sends `x` and `y` to the server. These are integers corresponding to rows in
-a table encoded by `pub`. The server executes:
+and sends `x` and `y` to the server. Integers `x` and `y` are together called the
+_index_ and are used by the server to compute its share of the output using
+`pub`. The server computes:
 ```
 pubShare, err := pub.GetShare(x, y)
 ```
