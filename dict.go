@@ -134,6 +134,8 @@ type PrivDict struct {
 }
 
 // An undirected graph stored as an adjacency list.
+//
+// TODO(cjpatton) Don't export this type.
 type Graph [][]int32
 
 // New generates a new structure (pub, priv) for the map M and key K.
