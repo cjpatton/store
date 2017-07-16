@@ -1,13 +1,10 @@
 Secure Go maps
 ==============
 
-**TODO(cjpatton)** Update documentation.
-
 This package provides secure storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
-protocols where the service is trusted to provide storage, but is otherwise
-untrusted.
+protocols where the service is trusted only to provide storage.
 
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
@@ -21,7 +18,7 @@ Package `store`
 The client possesses a secret key `K` and data `M` (of type `map[string]string`).
 It executes:
 ```
-pub, priv, err := store.New(K, M)
+pub, priv, err := store.NewStore(K, M)
 ```
 
 and transmits `pub`, the public representation of `M`, to the server.
@@ -36,30 +33,32 @@ _index_ and are used by the server to compute its share of the output using
 ```
 pubShare, err := pub.GetShare(x, y)
 ```
-
-and sends `pubShare` (of type `[]byte`) to the client. (This is the XOR of the
-two rows corresponding to `x` and `y`.) Finally, the client executes:
+and sends `pubShare` (of type `[]byte`) to the client. Finally, the client
+executes:
 ```
-output, err := priv.GetValue(input, pubShare)
+output, err := priv.GetOutput(input, pubShare)
 ```
 
 This combines `pubShare` with a private share computed from `input` and the key.
 The result is `output = M[input]`.  Note that the server is not entrusted with
-the key; its only job is to look up the rows of the table requested by the
-client. The data structure is designed so that _no_ information about `input` or
+the key; its only job is to look up the index requested by the client. The
+underlying data structure is designed so that _no_ information about `input` or
 `output` is leaked to any party not in possession of the secret key.
 
-Note that the length of each `output` is limited to 60 bytes; see
-[GoDoc](http://godoc.org/github.com/cjpatton/store) for details.
+For convenience, this package also provides an interface for querying `pub`
+directly:
+```
+output, err := priv.Get(pub, input)
+```
 
 The `StoreProvider` RPC service
 -------------------------------------
 `pb/store.proto` specifies a bare-bones [remote procedure
-call](http://www.grpc.io/docs/quickstart/go.html) for requesting public shares.
-The `user` computes `pub` from its map `M` and key `K` and provisions the
-service provider (out-of-band) with `pub`.  The request consists of the `user`
-and the table rows `x` and `y`, and the response consists of the `pubShare`
-computed from `x`, `y`, and `pub`.
+call](http://www.grpc.io/docs/quickstart/go.html) for the client and server
+roles in the protocol above.  The `user` computes `pub` from its map `M` and
+key `K` and provisions the service provider (out-of-band) with `pub`.  The
+request consists of the `user` and the index `x` and `y`, and the response
+consists of the `pubShare` computed from `x`, `y`, and `pub`.
 
 This simple RPC provides no authentication of the user, so any *anyone* can get
 the *entire* public store of *any* user. This is not a problem, however, as long
@@ -95,7 +94,7 @@ go get github.com/cjpatton/store
 This downloads this repository and puts it in
 `go/src/github.com/cjpatton/store`.
 
-Next, the core data structures are implemented in C. (Naviagte to
+Next, the core data structures are implemented in C. (Navigate to
 `go/src/github.com/cjpatton/store/c/`.)  The `Makefile` compiles a shared object
 for which the Go code has bindings. They depend on OpenSSL, so you'll need to
 install this library in advance. On Ubuntu:
@@ -129,23 +128,23 @@ $ go test github.com/cjpatton/store
 
 Running the toy application
 ---------------------------
-`hadee_server/hadee_server.go` implements the RPC service and serves a single
+`hadee/server/hadee_server.go` implements the RPC service and serves a single
 user. It takes as input the user name and a file containing the public store.
 To run it, first generate a sample store by doing:
 ```
-$ cd hadee_gen && go install && hadee_gen
+$ cd hadee/gen && go install && hadee_gen
 ```
 It will prompt you for a "master password" used to derive a key, which is used
 to generate the structure. This writes a file `store.pub` to the current
 directory. (The map it represents is hard-coded in the Go code.) To run the
 server, do:
 ```
-$ cd hadee_server && go install && hadee_server cjpatton store.pub
+$ cd hadee/server && go install && hadee_server cjpatton store.pub
 ```
 This opens a TCP socket on localhost:50051 and begins serving requests. To run
 the client, do:
 ```
-$ cd hadee_client && go install && hadee_client cjpatton
+$ cd hadee/client && go install && hadee_client cjpatton
 ```
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) **SECURITY WARNING:**
