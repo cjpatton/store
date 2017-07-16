@@ -1,6 +1,8 @@
 Secure Go maps
 ==============
 
+**TODO:** I'm updating the documentation.
+
 This package provides secure storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
@@ -12,6 +14,12 @@ indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
 ![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **DISCLAIMER:** This
 code is related to a research paper currently in submission. The underlying
 cryptographic mechanism still needs a formal proof.
+
+![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **FUTURE WORK:**
+Currently this package only provides _immutable_ storage of maps, meaning once
+you've created a data store, you can't change its contents. However, with some
+modifications it should be possible to insert, remove, and update input/output
+pairs securely. I'll be working on this next.
 
 Package `store`
 ---------------

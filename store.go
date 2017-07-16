@@ -23,7 +23,7 @@ const SealKeyBytes = 16
 const KeyBytes = DictKeyBytes + SealKeyBytes
 
 // Returned by NewStore() in case the number of elements in the input exceeds
-// the number of bytes of the counter.
+// the number of unique counters.
 const ErrorMapTooLarge = Error("input map is too large")
 
 // GenerateKey generates a fresh, random key and returns it.
@@ -46,7 +46,7 @@ func DeriveKeyFromPassword(password, salt []byte) []byte {
 	return pbkdf2.Key(password, salt, 4096, KeyBytes, sha256.New)
 }
 
-// Store the public representation of the map.
+// Stores the public representation of the map.
 type PubStore struct {
 	dict   *PubDict
 	sealed [][]byte
