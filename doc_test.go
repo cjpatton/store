@@ -13,19 +13,19 @@ func ExampleDeriveKeyFromPassword() {
 	// Output: 32
 }
 
-func ExampleGenerateDictKey() {
+func ExampleGenerateKey() {
 	K := GenerateKey()
 	fmt.Println(len(K))
 	// Output: 32
 }
 
-func ExampleNewDict() {
-	K := GenerateDictKey()
+func ExampleNewStore() {
+	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := NewDict(K, M)
+	pub, priv, err := NewStore(K, M)
 	if err != nil {
-		fmt.Println("NewDict() error:", err)
+		fmt.Println("NewStore() error:", err)
 		return
 	}
 	defer pub.Free()
@@ -54,12 +54,12 @@ func ExampleNewDict() {
 }
 
 func ExampleGet() {
-	K := GenerateDictKey()
+	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := NewDict(K, M)
+	pub, priv, err := NewStore(K, M)
 	if err != nil {
-		fmt.Println("NewDict() error:", err)
+		fmt.Println("NewStore() error:", err)
 		return
 	}
 	defer pub.Free()
@@ -82,46 +82,46 @@ func ExampleGet() {
 	// Get() error: item not found
 }
 
-func ExampleNewPubDictFromTable() {
-	K := GenerateDictKey()
+func ExampleNewPubStoreFromTable() {
+	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := NewDict(K, M)
+	pub, priv, err := NewStore(K, M)
 	if err != nil {
-		fmt.Println("NewDict() error:", err)
+		fmt.Println("NewStore() error:", err)
 		return
 	}
 	defer pub.Free()
 	defer priv.Free()
 
-	pubFromTable := NewPubDictFromProto(pub.GetProto())
+	pubFromTable := NewPubStoreFromProto(pub.GetProto())
 	defer pubFromTable.Free()
 
 	fmt.Println(pub.String() == pubFromTable.String())
 	// Output: true
 }
 
-func ExampleNewPrivDict() {
-	K := GenerateDictKey()
+func ExampleNewPrivStore() {
+	K := GenerateKey()
 	M := map[string]string{"Out": "of this world!"}
 
-	pub, priv, err := NewDict(K, M)
+	pub, priv, err := NewStore(K, M)
 	if err != nil {
-		fmt.Println("NewDict() error:", err)
+		fmt.Println("NewStore() error:", err)
 		return
 	}
 	defer pub.Free()
 	defer priv.Free()
 
-	privFromKeyAndPrivParams, err := NewPrivDict(K, priv.GetParams())
+	privFromKeyAndPrivParams, err := NewPrivStore(K, priv.GetParams())
 	if err != nil {
-		fmt.Println("NewPrivDict() error:", err)
+		fmt.Println("NewPrivStore() error:", err)
 	}
 	defer privFromKeyAndPrivParams.Free()
 
-	privFromKeyAndPubParams, err := NewPrivDict(K, pub.GetProto().GetParams())
+	privFromKeyAndPubParams, err := NewPrivStore(K, pub.GetProto().GetDict().GetParams())
 	if err != nil {
-		fmt.Println("NewPrivDict() error:", err)
+		fmt.Println("NewPrivStore() error:", err)
 	}
 	defer privFromKeyAndPubParams.Free()
 }
