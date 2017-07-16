@@ -4,9 +4,9 @@
 /*
 Package store provides secure storage of map[string]string objects. It combines
 an AEAD ("authenticated encryption with associated data") scheme and a data
-structure for representing functions called a Bloomier filter.  It is suited
+structure for representing functions called a Bloomier filter. It is suited
 client/server protocols in which the server is trusted only to provide storage.
-The client possesses a secret key K and data M (of type map[string]string. It
+The client possesses a secret key K and data M (of type map[string]string). It
 executes:
 
 		pub, priv, err := store.NewStore(K, M)

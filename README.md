@@ -27,9 +27,9 @@ To compute `M[input]`, the client executes:
 x, y, err := priv.GetIdx(input)
 ```
 
-and sends `x` and `y` to the server. Integers `x` and `y` are together called the
-_index_ and are used by the server to compute its share of the output using
-`pub`. The server computes:
+and sends `x` and `y` to the server. Integers `x` and `y` are together called
+the _index_ and are used by the server to compute its share of the output.  The
+server computes:
 ```
 pubShare, err := pub.GetShare(x, y)
 ```
