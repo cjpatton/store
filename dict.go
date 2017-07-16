@@ -205,12 +205,12 @@ func (pub *PubDict) GetShare(x, y int) ([]byte, error) {
 func (pub *PubDict) String() string {
 	dict := pub.GetProto()
 	rowBytes := int(dict.GetParams().GetRowBytes())
-	str := fmt.Sprintf("%s\n", hex.EncodeToString(dict.GetParams().GetSalt()))
+	str := fmt.Sprintf("salt: %s\ntable: ", hex.EncodeToString(dict.GetParams().GetSalt()))
 	for i := 0; i < len(dict.Idx); i++ {
 		row := dict.Table[i*rowBytes : (i+1)*rowBytes]
-		str += fmt.Sprintf("%s\n", hex.EncodeToString(row))
+		str += fmt.Sprintf("%s", hex.EncodeToString(row))
 	}
-	return str
+	return str + "\n"
 }
 
 // GetProto returns a *pb.Dict representation of the dictionary.

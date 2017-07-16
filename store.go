@@ -238,7 +238,7 @@ func (pub *PubStore) GetProto() *pb.Store {
 func (pub *PubStore) String() string {
 	str := pub.dict.String()
 	for i := 0; i < len(pub.sealed); i++ {
-		str += fmt.Sprintf("%s\n", hex.EncodeToString(pub.sealed[i]))
+		str += fmt.Sprintf("%d: %s\n", i, hex.EncodeToString(pub.sealed[i]))
 	}
 	return str
 }

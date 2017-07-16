@@ -62,6 +62,9 @@ func main() {
 	priv.Free()
 	defer pub.Free()
 
+	log.Println("The store:")
+	log.Println("\n", pub.String())
+
 	pubString, err := proto.Marshal(pub.GetProto())
 	if err != nil {
 		log.Fatalln("pub.GetProto().Marshal() fails:", err)
