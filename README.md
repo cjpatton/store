@@ -129,8 +129,8 @@ This downloads this repository and puts it in
 
 Next, the core data structures are implemented in C. (Navigate to
 `go/src/github.com/cjpatton/store/c/`.)  The `Makefile` compiles a shared object
-for which the Go code has bindings. They depend on OpenSSL, so you'll need to
-install this library in advance. On Ubuntu:
+for which the Go code has bindings. They depend on OpenSSL (SHA512 and
+HMAC-SHA512), so you'll need to install this library in advance. On Ubuntu:
 ```
 $ sudo apt-get install libssl-dev
 ```
@@ -151,8 +151,8 @@ of warnings.) To install, do
 $ sudo make install && sudo ldconfig
 ```
 
-This builds a file called `libstruct.so` and moves it to `/usr/local/lib` and
-copies the header files to `/usr/local/include/struct`.
+This builds a file called `libstructsec.so` and moves it to `/usr/local/lib` and
+copies the header files to `/usr/local/include/structsec`.
 
 Now you should be able to build the package. To run tests, do
 ```
