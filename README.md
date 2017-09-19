@@ -70,9 +70,16 @@ output, err := priv.Get(pub, input)
 ```
 
 **Dict.**
-This light-weight structure is the core of **Store** and is implemented in C;
-the Go package just provides an interface. It can be used in exactly the same
-way as **Store**, but is only suitable for short outputs.
+This light-weight structure is the core of **Store.** The Go package is an
+interface for the underlying C implementation.  It can be used in exactly the
+same way as **Store**, but is only suitable for short (60 byte) outputs. See the
+package documentation for an explanation of this limitation. To construct it,
+the client executes:
+```
+pub, priv, err := store.NewDic9t(K, M)
+```
+
+The remaining functions are as above.
 
 The `store/pb` package
 ----------------------
