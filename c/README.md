@@ -1,7 +1,5 @@
 struct
 ======
-- TODO(cjpatton) Rename. There's likely a lot of collisions with `libstruct.so` and
-   `/usr/local/include/struct`.
 - TODO(cjpatton) Function for computing BF parameters.
 
 Implementations of (keyed) data structures and (keyed) hash functions:

@@ -17,9 +17,9 @@ import (
 /*
 // The next line gets things going on Mac:
 #cgo CPPFLAGS: -I/usr/local/opt/openssl/include
-#cgo LDFLAGS: -lstruct -lcrypto
-#include <struct/const.h>
-#include <struct/dict.h>
+#cgo LDFLAGS: -lstructsec -lcrypto
+#include <structsec/const.h>
+#include <structsec/dict.h>
 #include "string.h"
 
 char **new_str_list(int len) {

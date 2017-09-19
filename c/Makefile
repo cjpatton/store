@@ -8,13 +8,13 @@ bitstest = test-bits
 bloomtest = test-bloom
 dicttest = test-dict
 
-libstruct.so: bits.o tiny.o bloom.o dict.o
-	$(cc) -shared -o libstruct.so bits.o tiny.o bloom.o dict.o $(lflags)
+libstructsec.so: bits.o tiny.o bloom.o dict.o
+	$(cc) -shared -o libstructsec.so bits.o tiny.o bloom.o dict.o $(lflags)
 
-install: libstruct.so const.h bits.h tiny.h bloom.h dict.h
-	cp libstruct.so /usr/local/lib
-	mkdir -p /usr/local/include/struct
-	cp const.h bits.h tiny.h bloom.h dict.h /usr/local/include/struct
+install: libstructsec.so const.h bits.h tiny.h bloom.h dict.h
+	cp libstructsec.so /usr/local/lib
+	mkdir -p /usr/local/include/structsec
+	cp const.h bits.h tiny.h bloom.h dict.h /usr/local/include/structsec
 
 test: $(bitstest) $(tinytest) $(bloomtest) $(dicttest)
 
