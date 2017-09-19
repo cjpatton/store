@@ -76,7 +76,7 @@ same way as **Store**, but is only suitable for short (60 byte) outputs. See the
 package documentation for an explanation of this limitation. To construct it,
 the client executes:
 ```
-pub, priv, err := store.NewDic9t(K, M)
+pub, priv, err := store.NewDict(K, M)
 ```
 
 The remaining functions are as above.
