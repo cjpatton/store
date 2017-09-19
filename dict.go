@@ -491,8 +491,8 @@ func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *Pri
 
 	// Create priv.
 	//
-	// NOTE dict.salt is not set, and so priv.params.salt is not set. It's
-	// necessary to set it after calling C.dict_create().
+	// NOTE(cjpatton) dict.salt is not set, and so priv.params.salt is not set.
+	// It's necessary to set it after calling C.dict_create().
 	priv, err := NewPrivDict(K, params)
 	if err != nil {
 		return nil, nil, nil, err

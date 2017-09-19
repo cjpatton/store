@@ -1,12 +1,12 @@
 Secure Go maps
 ==============
 
-**TODO:** I'm updating the documentation.
-
 This package provides secure storage of Go's `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
-protocols where the service is trusted only to provide storage.
+protocols where the service is trusted only to provide storage. In addition to
+providing confidentiality, it allows the client to verify the integrity of the
+server's responses.
 
 An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
@@ -21,8 +21,18 @@ you've created a data store, you can't change its contents. However, with some
 modifications it should be possible to insert, remove, and update input/output
 pairs securely. I'll be working on this next.
 
-Package `store`
----------------
+The `store` package
+-------------------
+
+The main package provides two data structures: **Store** and **Dict**. The
+former offers _confidentiality_ and _integrity_ for `map[string]string` objects
+with arbitrary-length inputs and outputs. Its security follows from the
+combination of _authenticated encryption with associated data_
+([AEAD](https://en.wikipedia.org/wiki/Authenticated_encryption)) and the latter
+structure, which offers only _confidentiality_ and is only suitable for maps
+who's outputs are of length _at most_ 60.
+
+**Store.**
 The client possesses a secret key `K` and data `M` (of type `map[string]string`).
 It executes:
 ```
@@ -35,9 +45,9 @@ To compute `M[input]`, the client executes:
 x, y, err := priv.GetIdx(input)
 ```
 
-and sends `x` and `y` to the server. Integers `x` and `y` are together called
-the _index_ and are used by the server to compute its share of the output.  The
-server computes:
+and sends `x` and `y` (both of type `int`) to the server. The pair `(x,y)` is
+called the _index_ and is used by the server to compute its share of the
+output.  The server computes:
 ```
 pubShare, err := pub.GetShare(x, y)
 ```
@@ -47,7 +57,7 @@ executes:
 output, err := priv.GetOutput(input, pubShare)
 ```
 
-This combines `pubShare` with a private share computed from `input` and the key.
+This combines `pubShare` with a private share computed from `input` and `K`.
 The result is `output = M[input]`.  Note that the server is not entrusted with
 the key; its only job is to look up the index requested by the client. The
 underlying data structure is designed so that _no_ information about `input` or
@@ -59,14 +69,22 @@ directly:
 output, err := priv.Get(pub, input)
 ```
 
-The `StoreProvider` RPC service
--------------------------------------
-`pb/store.proto` specifies a bare-bones [remote procedure
+**Dict.**
+This light-weight structure is the core of **Store** and is implemented in C;
+the Go package just provides an interface. It can be used in exactly the same
+way as **Store**, but is only suitable for short outputs.
+
+The `store/pb` package
+----------------------
+File `pb/store.proto` specifies a bare-bones [remote procedure
 call](http://www.grpc.io/docs/quickstart/go.html) for the client and server
-roles in the protocol above.  The `user` computes `pub` from its map `M` and
-key `K` and provisions the service provider (out-of-band) with `pub`.  The
-request consists of the `user` and the index `x` and `y`, and the response
-consists of the `pubShare` computed from `x`, `y`, and `pub`.
+roles in the protocol above.
+
+**The `StoreProvider` service.**
+The `user` computes `pub` from its map `M` and key `K` and provisions the
+service provider (out-of-band) with `pub`.  The request consists of the `user`
+and `(x,y)`, and the response consists of the `pubShare` computed from `x`, `y`,
+and `pub`.
 
 This simple RPC provides no authentication of the user, so any *anyone* can get
 the *entire* public store of *any* user. This is not a problem, however, as long
