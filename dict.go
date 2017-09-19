@@ -134,9 +134,7 @@ type PrivDict struct {
 }
 
 // An undirected graph stored as an adjacency list.
-//
-// TODO(cjpatton) Don't export this type.
-type Graph [][]int32
+type graph [][]int32
 
 // New generates a new structure (pub, priv) for the map M and key K.
 //
@@ -468,7 +466,7 @@ func getRow(table *C.char, idx, rowBytes C.int) []byte {
 }
 
 // newDictAndGraph constructs a new dictionary and returns the generated graph.
-func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *PrivDict, Graph, error) {
+func newDictAndGraph(K []byte, cM *cMap, tagBytes int, pad bool) (*PubDict, *PrivDict, graph, error) {
 	pub := new(PubDict)
 
 	// Allocate a new dictionary object.

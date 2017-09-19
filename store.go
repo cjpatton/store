@@ -50,7 +50,7 @@ func DeriveKeyFromPassword(password, salt []byte) []byte {
 type PubStore struct {
 	dict   *PubDict
 	sealed [][]byte
-	graph  Graph
+	g      graph
 }
 
 // Stores the private context used to query the map.
@@ -104,7 +104,7 @@ func NewStore(K []byte, M map[string]string) (pub *PubStore, priv *PrivStore, er
 	defer cN.free()
 
 	// Construct the graph.
-	pub.dict, priv.dict, pub.graph, err = newDictAndGraph(
+	pub.dict, priv.dict, pub.g, err = newDictAndGraph(
 		K[DictKeyBytes:], cN, 0, false)
 	if err != nil {
 		return nil, nil, err
@@ -140,10 +140,10 @@ func (pub *PubStore) GetShare(x, y int) ([]byte, error) {
 		return nil, err
 	}
 	// Look up sealed output.
-	for i := 0; i < len(pub.graph[x]); i++ {
-		e := pub.graph[x][i]
-		for j := 0; j < len(pub.graph[y]); j++ {
-			if pub.graph[y][j] == e {
+	for i := 0; i < len(pub.g[x]); i++ {
+		e := pub.g[x][i]
+		for j := 0; j < len(pub.g[y]); j++ {
+			if pub.g[y][j] == e {
 				return append(ctrShare, pub.sealed[e]...), nil
 			}
 		}
@@ -205,9 +205,9 @@ func NewPubStoreFromProto(table *pb.Store) (pub *PubStore) {
 	pub = new(PubStore)
 	pub.dict = NewPubDictFromProto(table.GetDict())
 	pub.sealed = table.GetSealed()
-	pub.graph = make(Graph, table.GetNodeCt())
+	pub.g = make(graph, table.GetNodeCt())
 	for i := 0; i < len(table.Node); i++ {
-		pub.graph[table.Node[i]] = table.AdjList[i].Edge
+		pub.g[table.Node[i]] = table.AdjList[i].Edge
 	}
 	return pub
 }
@@ -218,11 +218,11 @@ func NewPubStoreFromProto(table *pb.Store) (pub *PubStore) {
 func (pub *PubStore) GetProto() *pb.Store {
 	adjList := make([]*pb.Store_AdjList, 0)
 	node := make([]int32, 0)
-	for i := 0; i < len(pub.graph); i++ {
-		if len(pub.graph[i]) > 0 {
+	for i := 0; i < len(pub.g); i++ {
+		if len(pub.g[i]) > 0 {
 			node = append(node, int32(i))
 			adjList = append(adjList,
-				&pb.Store_AdjList{Edge: pub.graph[i]})
+				&pb.Store_AdjList{Edge: pub.g[i]})
 		}
 	}
 	return &pb.Store{
@@ -230,7 +230,7 @@ func (pub *PubStore) GetProto() *pb.Store {
 		Sealed:  pub.sealed,
 		Node:    node,
 		AdjList: adjList,
-		NodeCt:  int32(len(pub.graph)),
+		NodeCt:  int32(len(pub.g)),
 	}
 }
 
