@@ -64,6 +64,9 @@ void tinyprf_free(tiny_ctx *ctx) {
 }
 
 int tinyprf_init(tiny_ctx *ctx, const char *key) {
+  if (ctx == NULL) {
+    return ERR;
+  }
 
   // Initialize HMAC-SHA512 context with 'key' and return the result.
   int res = HMAC_Init_ex(&(ctx->_st.hmac), key, HMAC_KEY_BYTES, EVP_sha512(), NULL);
