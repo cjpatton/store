@@ -1,7 +1,7 @@
-Secure Go maps
-==============
+Oblivous Go maps
+================
 
-This package provides secure storage of Go's `map[string]string` objects. The
+This package provides secure storage of `map[string]string` objects. The
 contents of the structure cannot be deduced from its public representation, and
 querying it requires knowledge of a secret key. It is suitable for client/server
 protocols where the service is trusted only to provide storage. In addition to
@@ -12,8 +12,7 @@ An overview and installation instructions follow; the package documentation is
 indexed on [GoDoc](http://godoc.org/github.com/cjpatton/store).
 
 ![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **DISCLAIMER:** This
-code is related to a research paper currently in submission. The underlying
-cryptographic mechanism still needs a formal proof.
+code is related to a research paper, which will be up on ePrint at some point.
 
 ![#b8b8b8](https://placehold.it/15/b8b8b8/000000?text=+) **FUTURE WORK:**
 Currently this package only provides _immutable_ storage of maps, meaning once
